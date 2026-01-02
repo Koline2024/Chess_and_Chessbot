@@ -2,6 +2,8 @@ package pieces;
 
 import enums.pieceColour;
 import enums.pieceType;
+import board.Coordinates;
+import board.Board;
 
 public abstract class Piece {
 

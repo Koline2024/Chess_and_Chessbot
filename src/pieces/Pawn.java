@@ -1,9 +1,11 @@
 package pieces;
 
-// if Board.java starts with "package chess;"
 import board.Board;
 import board.Coordinates;
-import Piece;
+import enums.pieceColour;
+import enums.pieceType;
+
+// TODO: Add en passant
 
 public class Pawn extends Piece {
 
