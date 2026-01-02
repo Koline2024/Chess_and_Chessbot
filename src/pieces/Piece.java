@@ -1,3 +1,8 @@
+package pieces;
+
+import enums.pieceColour;
+import enums.pieceType;
+
 public abstract class Piece {
 
     // Base class for the piece which every piece inherits.
@@ -36,13 +41,5 @@ public abstract class Piece {
     }
 
     public abstract boolean isValidMove(Coordinates target, Board board);
-
-    public enum pieceColour {
-        WHITE, BLACK
-    }
-
-    public enum pieceType {
-        PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
-    }
 
 }

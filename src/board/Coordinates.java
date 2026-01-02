@@ -1,3 +1,5 @@
+package board;
+
 public class Coordinates{ 
   private int rank;
   private int file;
