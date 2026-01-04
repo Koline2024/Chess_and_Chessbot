@@ -4,9 +4,7 @@ import pieces.Piece;
 
 public class Board {
 
-    private Piece lastMovedPiece;
-    private Coordinates lastMovedFrom;
-    private Coordinates lastMovedTo;
+    private Move lastMove;
 
     private Piece[][] grid = new Piece[8][8];
 
@@ -36,9 +34,19 @@ public class Board {
         return grid[x][y];
     }
 
-    public Piece getLastMovedPiece(){
-        return lastMovedPiece;
+    public boolean isLegalMove(Move move){
+        
     }
+
+
+
+
+
+
+
+
+
+
 
     private void initialise() {
         // Read this as a2 (file, rank)
