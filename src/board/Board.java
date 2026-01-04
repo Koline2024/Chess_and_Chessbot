@@ -21,6 +21,17 @@ public class Board {
         return grid[c.getRow()][c.getCol()];
     }
 
+    /**
+     * Row, Col
+     * @param x
+     * @param y
+     * @return
+     */
+    public Piece getPieceAt(int x, int y){
+        // Assuming these are proper array indices
+        return grid[x][y];
+    }
+
     private void initialise() {
         // Read this as a2 (file, rank)
         // --- WHITE PIECES ---

@@ -1,35 +1,43 @@
 package board;
 
 public class Coordinates{ 
-  private int rank;
-  private int file;
+
+  // Chess variables
+  private final int rank; // 1-8 ONLY
+  private final char file; // a-h ONLY
 
   public Coordinates(int rank, char file){
-    this.rank = rank;
-    this.file = file - 'a';
+    if(rank < 1 || rank > 8){
+      throw new IllegalArgumentException("Rank out of bounds.");
+    }else{
+      this.rank = rank;
+    }
+
+    if(file < 'a' || file > 'h'){
+      throw new IllegalArgumentException("File out of bounds.");
+    }else{
+      this.file = file;
+    }
+
   }
 
   public int getRank(){
     return rank;
   }
 
-  public int getFile(){
+  public char getFile(){
     return file;
   }
 
+  // Array based indices here
+  
   public int getRow(){
     return 8 - rank;
   }
 
   public int getCol(){
-    return file;
+    return file - 'a';
   }
 
-  public void setRank(int newRank){
-    rank = newRank;
-  }
 
-  public void setFile(int newFile){
-    file = newFile; 
-  }
 } 
