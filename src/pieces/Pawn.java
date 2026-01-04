@@ -10,7 +10,7 @@ import enums.pieceType;
 public class Pawn extends Piece {
 
     boolean canMoveTwo = true;
-    boolean canEnPassant;
+    private boolean justMovedTwice = false;
 
     public Pawn(pieceColour colour, Coordinates coordinates) {
         super(pieceType.PAWN, colour, coordinates);
@@ -28,6 +28,7 @@ public class Pawn extends Piece {
         // left right
         if (dUpDown == moveDir && board.getPiece(target) == null && dLeftRight == 0) {
             canMoveTwo = false;
+            justMovedTwice = false;
             return true;
         }
 
@@ -39,6 +40,7 @@ public class Pawn extends Piece {
             // Only allow opposite colour capturing lol
             if (toBeCaptured.getColour() != colour) {
                 canMoveTwo = false;
+                justMovedTwice = false;
                 return true;
             } else {
                 return false;
@@ -49,6 +51,7 @@ public class Pawn extends Piece {
         // Conditions: dUpDown/2 is in moveDir, target square is empty, left right
         // motion zero
         if (dUpDown / 2 == moveDir && board.getPiece(target) == null && dLeftRight == 0 && canMoveTwo) {
+            justMovedTwice = true;
             return true;
         }
 
@@ -60,15 +63,8 @@ public class Pawn extends Piece {
         return canMoveTwo;
     }
 
-    public void setCanMoveTwo(boolean newCanMoveTwo) {
-        canMoveTwo = newCanMoveTwo;
+    public boolean hasJustMovedTwice(){
+        return justMovedTwice;
     }
 
-    public boolean getCanEnPassant() {
-        return canEnPassant;
-    }
-
-    public void setCanEnPassant(boolean newCanEnPassant) {
-        canEnPassant = newCanEnPassant;
-    }
 }
