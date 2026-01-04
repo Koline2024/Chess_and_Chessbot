@@ -4,6 +4,10 @@ import pieces.Piece;
 
 public class Board {
 
+    private Piece lastMovedPiece;
+    private Coordinates lastMovedFrom;
+    private Coordinates lastMovedTo;
+
     private Piece[][] grid = new Piece[8][8];
 
     public Board() {
@@ -30,6 +34,10 @@ public class Board {
     public Piece getPieceAt(int x, int y){
         // Assuming these are proper array indices
         return grid[x][y];
+    }
+
+    public Piece getLastMovedPiece(){
+        return lastMovedPiece;
     }
 
     private void initialise() {
