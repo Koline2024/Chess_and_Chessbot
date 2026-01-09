@@ -1,9 +1,8 @@
-import board.Board;
+import board.Game;
 
 public class Main {
     public static void main(String[] args) {
-        Board board = new Board();
-        board.printBoard();
-      
+        Game game = new Game();
+        game.start();
     }
 }
