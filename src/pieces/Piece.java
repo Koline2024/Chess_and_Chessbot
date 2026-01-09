@@ -44,4 +44,6 @@ public abstract class Piece {
 
     public abstract boolean isValidMove(Coordinates target, Board board);
 
+    public abstract String getSymbol();
+
 }

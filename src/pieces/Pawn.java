@@ -59,12 +59,38 @@ public class Pawn extends Piece {
 
     }
 
+    // Special case: Pawns attack differently and must be treated differently
+    public boolean canAttack(Coordinates target, Board board){
+        int moveDir = (colour == pieceColour.WHITE) ? 1 : -1;
+        int dUpDown = target.getRank() - coordinates.getRank();
+        int dLeftRight = target.getFile() - coordinates.getFile();
+
+        if (dUpDown == moveDir && board.getPiece(target) != null && Math.abs(dLeftRight) == 1) {
+            Piece toBeCaptured = board.getPiece(target);
+            if (toBeCaptured.getColour() != colour) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
     public boolean getCanMoveTwo() {
         return canMoveTwo;
     }
 
     public boolean hasJustMovedTwice(){
         return justMovedTwice;
+    }
+
+    @Override
+    public String getSymbol(){
+        if(colour == pieceColour.WHITE){
+            return "Pw";
+        }else{
+            return "Pb";
+        }
     }
 
 }

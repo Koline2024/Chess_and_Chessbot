@@ -53,4 +53,13 @@ public class Bishop extends Piece {
         }
 
     }
+
+    @Override
+    public String getSymbol(){
+        if(colour == pieceColour.WHITE){
+            return "Bw";
+        }else{
+            return "Bb";
+        }
+    }
 }
