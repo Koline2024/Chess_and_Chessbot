@@ -29,7 +29,7 @@ public class Board {
         this.lastMove = move;
     }
 
-    public void setPiece(Coordinates c, Piece p) {
+    private void setPiece(Coordinates c, Piece p) {
         grid[c.getRow()][c.getCol()] = p;
         if (p != null) {
             p.setCoordinates(c);

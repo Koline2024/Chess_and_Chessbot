@@ -33,9 +33,28 @@ public class Game {
     }
 
     private void processInput(String input) {
-        // Case 1: standard move
-        
+        boolean isPawnMove = true;
+        boolean isCaptureMove = false;
+        // Hard code O-O and O-O-O here
+
+        // If no uppercase in string, is pawn. Else is piece.
+        for(int i = 0; i < input.length(); i++){
+            if(Character.isUpperCase(input.charAt(i))){
+                isPawnMove = false;
+            }
+            if(input.charAt(i) == 'x'){
+                isCaptureMove = true;
+            }
+        }
+
+        if(isPawnMove){
+            
+            }
+        }
+
+
+
 
     }
 
-}
+
