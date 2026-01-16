@@ -7,6 +7,8 @@ import enums.pieceType;
 
 public class Rook extends Piece {
 
+    boolean hasMoved = false;
+
     public Rook(pieceColour colour, Coordinates coordinates) {
         super(pieceType.ROOK, colour, coordinates);
     }
@@ -74,5 +76,13 @@ public class Rook extends Piece {
         }else{
             return "Rb";
         }
+    }
+
+    public boolean getHasMoved(){
+        return hasMoved;
+    }
+
+    public void setHasMoved(boolean x){
+        hasMoved = x;
     }
 }

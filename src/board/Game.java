@@ -19,12 +19,14 @@ public class Game {
         while (true) {
             board.printBoard();
             System.out.println((isWhiteTurn ? "White" : "Black") + "'s Turn");
+            System.out.println("Enter start square + space + end square");
             System.out.print("Enter Move: ");
             try {
                 String input = keyboard.readLine();
                 if (input.equals("exit")) {
                     break;
                 }
+                // Throw an IOexception if input is invalid
                 processInput(input);
             } catch (IOException e) {
                 System.out.println("Invalid move! ");
@@ -33,28 +35,71 @@ public class Game {
     }
 
     private void processInput(String input) {
-        boolean isPawnMove = true;
-        boolean isCaptureMove = false;
-        // Hard code O-O and O-O-O here
-
-        // If no uppercase in string, is pawn. Else is piece.
-        for(int i = 0; i < input.length(); i++){
-            if(Character.isUpperCase(input.charAt(i))){
-                isPawnMove = false;
-            }
-            if(input.charAt(i) == 'x'){
-                isCaptureMove = true;
-            }
+        // Hard code castling
+        if (input.equals("O-O")) {
+            handleCastling(input);
+            return;
         }
 
-        if(isPawnMove){
-            
-            }
+        if (input.length() != 5) {
+            System.out.println("Format error. ");
+            return;
         }
+        try {
+            // For e2 e4:
+            char startFile = input.charAt(0); // e
+            int startRank = Character.getNumericValue(input.charAt(1)); // 2
 
-
-
+            char endFile = input.charAt(3); // e
+            int endRank = Character.getNumericValue(input.charAt(4)); // 4
+            Coordinates initCoords = new Coordinates(startRank, startFile);
+            Coordinates finalCoords = new Coordinates(endRank, endFile);
+            Piece p = board.getPiece(initCoords);
+            if (p == null || p.getColour() != (isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK)) {
+                System.out.println("That's not your piece!");
+                return;
+            }
+            Move move = new Move(p, initCoords, finalCoords);
+            if (board.isMoveLegal(move)) {
+                board.doMove(move);
+                isWhiteTurn = !isWhiteTurn;
+            } else {
+                System.out.println("Move is illegal!");
+            }
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid coordinates. ");
+        }
 
     }
 
+    private void handleCastling(String type) {
+        int rank = isWhiteTurn ? 1 : 8; // White is Rank 1, Black is Rank 8
+        Coordinates start = new Coordinates(rank, 'e');
+        Coordinates end;
 
+        if (type.equals("O-O")) {
+            end = new Coordinates(rank, 'g'); // Kingside
+        } else {
+            end = new Coordinates(rank, 'c'); // Queenside
+        }
+
+        Piece king = board.getPiece(start);
+
+        // Safety check: is it actually a King?
+        if (king == null || king.getType() != pieceType.KING) {
+            System.out.println("Illegal: King has moved or is not there.");
+            return;
+        }
+
+        Move move = new Move(king, start, end);
+        // You'll need a way to tell the Move object this IS a castling attempt
+        move.setIsCastling(true);
+
+        if (board.isMoveLegal(move)) {
+            board.doMove(move);
+            isWhiteTurn = !isWhiteTurn;
+        } else {
+            System.out.println("Castling is illegal!");
+        }
+    }
+}

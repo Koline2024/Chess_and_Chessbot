@@ -36,6 +36,10 @@ public class Move {
         return isCastling;
     }
 
+    public void setIsCastling(boolean x){
+        x = isCastling;
+    }
+
     public boolean isPromotion(){
         return isPromotion;
     }

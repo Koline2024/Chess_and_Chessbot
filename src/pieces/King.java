@@ -6,6 +6,8 @@ import enums.pieceColour;
 import enums.pieceType;
 
 public class King extends Piece{
+    boolean hasMoved = false;
+
     public King(pieceColour colour, Coordinates coordinates){
         super(pieceType.KING, colour, coordinates);
     }
@@ -22,7 +24,7 @@ public class King extends Piece{
         int dCol = target.getCol() - coordinates.getCol();
 
         // King can only move one square in any direction
-        if(Math.abs(dRow) > 1 && Math.abs(dCol) > 1){
+        if(Math.abs(dRow) > 1 || Math.abs(dCol) > 1){
             return false;
         }
 
@@ -43,5 +45,13 @@ public class King extends Piece{
         }else{
             return "Kb";
         }
+    }
+
+    public boolean getHasMoved(){
+        return hasMoved;
+    }
+
+    public void setHasMoved(boolean x){
+        hasMoved = x;
     }
 }

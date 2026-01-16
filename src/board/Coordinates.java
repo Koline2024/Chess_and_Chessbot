@@ -39,5 +39,9 @@ public class Coordinates{
     return file - 'a';
   }
 
+  public String toString(){
+    return ""+file+rank;
+  }
+
 
 } 

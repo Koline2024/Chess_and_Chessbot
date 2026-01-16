@@ -25,8 +25,27 @@ public class Board {
         grid[move.getMoveFrom().getRow()][move.getMoveFrom().getCol()] = null;
         // Set the piece on the new square
         setPiece(move.getMoveTo(), move.piece);
-        // Update the lastMove
+        // Tell the piece where its new square is
+        move.piece.setCoordinates(move.getMoveTo());
+        // Update lastMove
         this.lastMove = move;
+
+        // Hard code castling hasMovedBefore booleans
+        if(move.piece.getType() == pieceType.ROOK){
+            // Casting because I am bad at structuring and also lazy
+            Rook p = (Rook) move.piece;
+            if(p.getHasMoved() == false){
+                p.setHasMoved(true);
+            }
+        }
+        
+        if(move.piece.getType() == pieceType.KING){
+            // Casting because I am bad at structuring and also lazy
+            King p = (King) move.piece;
+            if(p.getHasMoved() == false){
+                p.setHasMoved(true);
+            }
+        }
     }
 
     private void setPiece(Coordinates c, Piece p) {
@@ -55,12 +74,14 @@ public class Board {
     public boolean isMoveLegal(Move move) {
         // Geometric movement logic
         if (!move.piece.isValidMove(move.getMoveTo(), this)) {
+            System.out.println("Illegal move: geometrically invalid. ");
             return false;
         }
 
         // Castling cannot occur if king is in check
         if (move.isCastling()) {
             if (isSquareAttacked(move.getMoveFrom(), move.piece.getColour())) {
+                System.out.println("Illegal move: castling cannot occcur");
                 return false;
                 // TODO: implement middle square checking
             }
@@ -68,6 +89,7 @@ public class Board {
 
         // King safety
         if (!isMoveSafe(move)) {
+            System.out.println("Illegal move: king would be attacked.");
             return false;
         }
         return true;
@@ -140,6 +162,7 @@ public class Board {
                     // Case 2: All other pieces
                     else {
                         if (p.isValidMove(coords, this)) {
+                            System.out.println(coords.toString() + " can be attacked by " + p.getSymbol());                            
                             return true;
                         }
                     }
@@ -155,11 +178,13 @@ public class Board {
                 Piece p = grid[i][j];
                 if (p != null) {
                     if (p.getType() == pieceType.KING && p.getColour() == colour) {
+                        System.out.println("King is at " + p.getCoordinates().toString());
                         return p.getCoordinates();
                     }
                 }
             }
         }
+        System.out.println("King cannot be found.");
         return null;
     }
 
