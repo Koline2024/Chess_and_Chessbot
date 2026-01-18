@@ -14,11 +14,45 @@ public class Board {
 
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
-    private Piece[][] lastGrid = new Piece[8][8];
 
     public Board() {
         initialise();
     }
+
+ public String getGameState(pieceColour colour) {
+    // First, check if there are ANY legal moves
+    for (int startRow = 0; startRow < 8; startRow++) {
+        for (int startCol = 0; startCol < 8; startCol++) {
+            Piece p = grid[startRow][startCol];
+
+            if (p != null && p.getColour() == colour) {
+                for (int targetRow = 0; targetRow < 8; targetRow++) {
+                    for (int targetCol = 0; targetCol < 8; targetCol++) {
+                        
+                        // Optimization: Don't check moving onto your own pieces
+                        Piece targetPiece = grid[targetRow][targetCol];
+                        if (targetPiece != null && targetPiece.getColour() == colour) continue;
+
+                        Coordinates to = new Coordinates(8 - targetRow, (char) ('a' + targetCol));
+                        Move testMove = new Move(p, p.getCoordinates(), to);
+
+                        if (isMoveLegal(testMove)) {
+                            System.out.println("You can move " + testMove.getMoveFrom().toString() + " to " + testMove.getMoveTo().toString());
+                            return "PLAYING"; // Found a move! No need to check any others.
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // No moves found? Check for check vs stalemate
+    if (isSquareAttacked(findKing(colour), colour)) {
+        return "CHECKMATE";
+    } else {
+        return "STALEMATE";
+    }
+}
 
     public void doMove(Move move) {
         // Clear the old square
@@ -85,7 +119,6 @@ public class Board {
     public boolean isMoveLegal(Move move) {
         // Before normal operation: Check if is castling
         if (move.isCastling()) {
-            System.out.println("Castling attempting");
             int row = move.getMoveFrom().getRow();
             int startCol = 4; // King is always on e
             int endCol = move.getMoveTo().getCol();
@@ -119,15 +152,14 @@ public class Board {
             if (isSquareAttacked(new Coordinates(move.getMoveFrom().getRank(), middleFile), move.piece.getColour()))
                 return false;
         } else if (!move.piece.isValidMove(move.getMoveTo(), this)) {
-            System.out.println("Illegal move: geometrically invalid. ");
             return false;
         }
 
         // King safety
         if (!isMoveSafe(move)) {
-            System.out.println("Illegal move: king would be attacked.");
             return false;
         }
+
         return true;
     }
 
@@ -189,16 +221,13 @@ public class Board {
         for (Piece[] pRow : grid) {
             for (Piece p : pRow) {
                 if (p != null && p.getColour() != colour) {
-                    // Case 1: Pawns
                     if (p.getType() == pieceType.PAWN) {
                         if (((Pawn) p).canAttack(coords, this)) {
                             return true;
                         }
                     }
-                    // Case 2: All other pieces
                     else {
                         if (p.isValidMove(coords, this)) {
-                            System.out.println(coords.toString() + " can be attacked by " + p.getSymbol());
                             return true;
                         }
                     }
@@ -214,13 +243,11 @@ public class Board {
                 Piece p = grid[i][j];
                 if (p != null) {
                     if (p.getType() == pieceType.KING && p.getColour() == colour) {
-                        System.out.println("King is at " + p.getCoordinates().toString());
                         return p.getCoordinates();
                     }
                 }
             }
         }
-        System.out.println("King cannot be found.");
         return null;
     }
 
@@ -239,4 +266,6 @@ public class Board {
         }
         System.out.println("   a   b   c   d   e   f   g   h"); // File headers
     }
+
+
 }

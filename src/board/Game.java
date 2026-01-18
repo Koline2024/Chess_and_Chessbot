@@ -16,10 +16,11 @@ public class Game {
 
     public void start() {
         BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-        while (true) {
+        String gameStateWhite = board.getGameState(pieceColour.WHITE);
+        String gameStateBlack = board.getGameState(pieceColour.BLACK);
+        while (gameStateWhite.equals("PLAYING") && gameStateBlack.equals("PLAYING")) {
             board.printBoard();
             System.out.println((isWhiteTurn ? "White" : "Black") + "'s Turn");
-            System.out.println("Enter start square + space + end square");
             System.out.print("Enter Move: ");
             try {
                 String input = keyboard.readLine();
@@ -28,9 +29,19 @@ public class Game {
                 }
                 // Throw an IOexception if input is invalid
                 processInput(input);
+                gameStateWhite = board.getGameState(pieceColour.WHITE);
+                gameStateBlack = board.getGameState(pieceColour.BLACK);
             } catch (IOException e) {
                 System.out.println("Invalid move! ");
             }
+        }
+        board.printBoard();
+        if(gameStateWhite.equals("CHECKMATE")){
+            System.out.println("Black wins by checkmate! ");
+        }else if(gameStateBlack.equals("CHECKMATE")){
+            System.out.println("White wins by checkmate! ");
+        }else if(gameStateBlack.equals("STALEMATE")){
+            System.out.println("Draw by stalemate! ");
         }
     }
 

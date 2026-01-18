@@ -47,12 +47,14 @@ public class Pawn extends Piece {
             }
         }
 
-        // Move two squares if it hasn't moved before
-        // Conditions: dUpDown/2 is in moveDir, target square is empty, left right
-        // motion zero
-        if (dUpDown / 2 == moveDir && board.getPiece(target) == null && dLeftRight == 0 && canMoveTwo) {
-            justMovedTwice = true;
-            return true;
+        // Two-square initial move
+        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && canMoveTwo) {
+            Coordinates between = new Coordinates(coordinates.getRank() + moveDir, coordinates.getFile());
+            if (board.getPiece(between) == null) {
+                canMoveTwo = false;
+                justMovedTwice = true;
+                return true;
+            }
         }
 
         return false;
@@ -60,7 +62,7 @@ public class Pawn extends Piece {
     }
 
     // Special case: Pawns attack differently and must be treated differently
-    public boolean canAttack(Coordinates target, Board board){
+    public boolean canAttack(Coordinates target, Board board) {
         int moveDir = (colour == pieceColour.WHITE) ? 1 : -1;
         int dUpDown = target.getRank() - coordinates.getRank();
         int dLeftRight = target.getFile() - coordinates.getFile();
@@ -80,15 +82,15 @@ public class Pawn extends Piece {
         return canMoveTwo;
     }
 
-    public boolean hasJustMovedTwice(){
+    public boolean hasJustMovedTwice() {
         return justMovedTwice;
     }
 
     @Override
-    public String getSymbol(){
-        if(colour == pieceColour.WHITE){
+    public String getSymbol() {
+        if (colour == pieceColour.WHITE) {
             return "Pw";
-        }else{
+        } else {
             return "Pb";
         }
     }
