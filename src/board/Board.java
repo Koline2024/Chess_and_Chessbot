@@ -30,19 +30,30 @@ public class Board {
         // Update lastMove
         this.lastMove = move;
 
+        // 2. The Rook Swap (Only for castling)
+        if (move.isCastling()) {
+            int row = move.getMoveFrom().getRow();
+            int rookStartCol = (move.getMoveTo().getCol() == 6) ? 7 : 0;
+            int rookEndCol = (move.getMoveTo().getCol() == 6) ? 5 : 3;
+
+            Rook rook = (Rook) grid[row][rookStartCol];
+            grid[row][rookStartCol] = null; // Clear corner
+            setPiece(new Coordinates(move.getMoveTo().getRank(), (char) ('a' + rookEndCol)), rook);
+            rook.setHasMoved(true);
+        }
         // Hard code castling hasMovedBefore booleans
-        if(move.piece.getType() == pieceType.ROOK){
+        if (move.piece.getType() == pieceType.ROOK) {
             // Casting because I am bad at structuring and also lazy
             Rook p = (Rook) move.piece;
-            if(p.getHasMoved() == false){
+            if (p.getHasMoved() == false) {
                 p.setHasMoved(true);
             }
         }
-        
-        if(move.piece.getType() == pieceType.KING){
+
+        if (move.piece.getType() == pieceType.KING) {
             // Casting because I am bad at structuring and also lazy
             King p = (King) move.piece;
-            if(p.getHasMoved() == false){
+            if (p.getHasMoved() == false) {
                 p.setHasMoved(true);
             }
         }
@@ -72,19 +83,44 @@ public class Board {
     }
 
     public boolean isMoveLegal(Move move) {
-        // Geometric movement logic
-        if (!move.piece.isValidMove(move.getMoveTo(), this)) {
+        // Before normal operation: Check if is castling
+        if (move.isCastling()) {
+            System.out.println("Castling attempting");
+            int row = move.getMoveFrom().getRow();
+            int startCol = 4; // King is always on e
+            int endCol = move.getMoveTo().getCol();
+            King k = (King) move.piece; // Casting is lazy but fine because king is ensured prior
+            if (k.getHasMoved() == true) {
+                return false;
+            }
+            // Check the rook
+            int rookCol = (endCol == 6) ? 7 : 0;
+            // Guard clause
+            if (grid[row][rookCol].getType() != pieceType.ROOK) {
+                return false;
+            }
+            Rook rook = (Rook) grid[row][rookCol]; // Again casting is fine since rook is ensured
+            if (rook == null || rook.getColour() != k.getColour() || rook.getHasMoved()) {
+                return false;
+            }
+
+            int step = (endCol > startCol) ? 1 : -1;
+            for (int c = startCol + step; c != rookCol; c += step) {
+                if (grid[row][c] != null)
+                    return false; // Square is blocked
+            }
+
+            // Square 1: Where the king starts
+            if (isSquareAttacked(new Coordinates(move.getMoveFrom().getRank(), 'e'), move.piece.getColour()))
+                return false;
+
+            // Square 2: The square the king passes through
+            char middleFile = (endCol == 6) ? 'f' : 'd';
+            if (isSquareAttacked(new Coordinates(move.getMoveFrom().getRank(), middleFile), move.piece.getColour()))
+                return false;
+        } else if (!move.piece.isValidMove(move.getMoveTo(), this)) {
             System.out.println("Illegal move: geometrically invalid. ");
             return false;
-        }
-
-        // Castling cannot occur if king is in check
-        if (move.isCastling()) {
-            if (isSquareAttacked(move.getMoveFrom(), move.piece.getColour())) {
-                System.out.println("Illegal move: castling cannot occcur");
-                return false;
-                // TODO: implement middle square checking
-            }
         }
 
         // King safety
@@ -162,7 +198,7 @@ public class Board {
                     // Case 2: All other pieces
                     else {
                         if (p.isValidMove(coords, this)) {
-                            System.out.println(coords.toString() + " can be attacked by " + p.getSymbol());                            
+                            System.out.println(coords.toString() + " can be attacked by " + p.getSymbol());
                             return true;
                         }
                     }

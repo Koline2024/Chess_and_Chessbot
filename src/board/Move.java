@@ -37,7 +37,7 @@ public class Move {
     }
 
     public void setIsCastling(boolean x){
-        x = isCastling;
+        isCastling = x;
     }
 
     public boolean isPromotion(){

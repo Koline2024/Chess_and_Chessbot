@@ -1,9 +1,9 @@
 package board;
 
 import pieces.Piece;
+import pieces.King;
 import enums.*;
 import java.io.*;
-import java.util.regex.Pattern;
 
 public class Game {
     private Board board;
@@ -36,7 +36,7 @@ public class Game {
 
     private void processInput(String input) {
         // Hard code castling
-        if (input.equals("O-O")) {
+        if (input.equals("O-O") || input.equals("O-O-O")) {
             handleCastling(input);
             return;
         }
@@ -83,16 +83,15 @@ public class Game {
             end = new Coordinates(rank, 'c'); // Queenside
         }
 
-        Piece king = board.getPiece(start);
+        Piece test = board.getPiece(start);
 
         // Safety check: is it actually a King?
-        if (king == null || king.getType() != pieceType.KING) {
+        if (test == null || test.getType() != pieceType.KING) {
             System.out.println("Illegal: King has moved or is not there.");
             return;
         }
-
+        King king = (King) board.getPiece(start);
         Move move = new Move(king, start, end);
-        // You'll need a way to tell the Move object this IS a castling attempt
         move.setIsCastling(true);
 
         if (board.isMoveLegal(move)) {
