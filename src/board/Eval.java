@@ -8,24 +8,18 @@ import java.util.Map;
 
 public class Eval {
 
-
-    
-        // Implement game phase recognition based on materialScore
-        // Implement pawn structure, pawn center, passed pawns
-        // Implement piece mobility score (areas controlled by enemy pawns do not count)
-        // Implement decreasing value of knight the less pawns there are
-        // Implement penalty for bad bishop based on mobility score
-        // Implement bonus for bishop pair
-        // Implement bonus for fianchetto if center is clear; penalty otherwise
-        // Implement increasing value of rook the less pawns there are
-        // Implement bonus for rook on enemy 7th/2nd rank; rook on open file
-        // Implement penalty for queen early movement (within first 10 moves)
-        // Implement king safety algorithm based on king tropism
-        // Implement king centralisation bonus in endgame
-        // Implement minus/plus infinity penalty for any mate patterns
+    // Implement pawn structure, pawn center, passed pawns
+    // Implement decreasing value of knight the less pawns there are
+    // Implement penalty for bad bishop based on mobility score
+    // Implement bonus for bishop pair
+    // Implement bonus for fianchetto if center is clear; penalty otherwise
+    // Implement increasing value of rook the less pawns there are
+    // Implement penalty for queen early movement (within first 10 moves)
+    // Implement king safety algorithm based on king tropism
+    // Implement minus/plus infinity penalty for any mate patterns
 
     // Map of piece types to material value
-    private static final Map<pieceType, Double> materialValues = new EnumMap<>(pieceType.class);
+    private static Map<pieceType, Double> materialValues = new EnumMap<>(pieceType.class);
     static {
         materialValues.put(pieceType.PAWN, 1.0);
         materialValues.put(pieceType.KNIGHT, 3.0);
@@ -48,14 +42,14 @@ public class Eval {
             { 0, 0, 0, 0, 0, 0, 0, 0 }
     };
 
-private static double[][] PSTKnight = {
-    // Encourage center control, knight on rim is dim
+    private static double[][] PSTKnight = {
+            // Encourage center control, knight on rim is dim
             { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 },
             { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
             { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
             { -0.3, 0.05, 0.15, 0.3, 0.3, 0.15, 0.05, -0.3 },
             { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 }, 
+            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
             { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
             { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 }
     };
@@ -83,13 +77,13 @@ private static double[][] PSTKnight = {
             { -0.1, 0, 0, 0.1, 0.1, 0, 0, -0.1 }, // Rank 1
     };
 
-private static double[][] PSTQueen = {
+    private static double[][] PSTQueen = {
             { -0.1, -0.05, -0.05, 0, 0, -0.05, -0.05, -0.1 },
             { -0.05, 0, 0, 0.05, 0.05, 0, 0, -0.05 },
             { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
             { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
             { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
-            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 }, 
+            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
             { -0.05, 0, 0, 0.05, 0.05, 0, 0, -0.05 },
             { -0.1, -0.05, -0.05, -0.1, 0, -0.05, -0.05, -0.1 }
     };
@@ -105,13 +99,13 @@ private static double[][] PSTQueen = {
             { 0.2, 0.3, 0.1, 0, -0.2, 0.1, 0.3, 0.2 } // Encourage castling and hiding on the wing
     };
 
-public static double[][] PSTKingEnd = {
+    public static double[][] PSTKingEnd = {
             { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 },
             { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
             { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
             { -0.3, 0.05, 0.15, 0.3, 0.3, 0.15, 0.05, -0.3 },
             { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 }, 
+            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
             { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
             { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 }
     };
@@ -133,6 +127,7 @@ public static double[][] PSTKingEnd = {
         double totalScore = 0;
         totalScore += evalMaterial(board);
         totalScore += evalPST(board);
+        totalScore += evalTropism(board);
         // Tempo bonus
         totalScore += (isWhiteTurn) ? 0.1 : -0.1;
 
@@ -149,33 +144,77 @@ public static double[][] PSTKingEnd = {
             materialScore -= materialValues.get(p.getType());
         }
 
-        // Replace middlegame king table with endgame king table if endgame is near
-        if(gameStageScore(materialScore) <= 0.1){
-            pstValues.put(pieceType.KING, PSTKingEnd);
-        }
-        
         return materialScore;
     }
 
     private double evalPST(Board board) {
-
         double pstScore = 0;
-        for (Piece p : board.getPieceList(pieceColour.WHITE)) {
-            int row = p.getCoordinates().getRow();
-            int col = p.getCoordinates().getCol();
-            pstScore += pstValues.get(p.getType())[row][col];
-        }
-        for (Piece p : board.getPieceList(pieceColour.BLACK)) {
-            int row = p.getCoordinates().getRow();
-            int col = p.getCoordinates().getCol();
-            pstScore -= pstValues.get(p.getType())[7-row][col];
+        double phase = getGamePhase(board); // 1 is opening, 0 is endgame
+
+        for (pieceColour color : pieceColour.values()) {
+            double colorMultiplier = (color == pieceColour.WHITE) ? 1.0 : -1.0;
+
+            for (Piece p : board.getPieceList(color)) {
+                int row = p.getCoordinates().getRow();
+                int col = p.getCoordinates().getCol();
+                if (color == pieceColour.BLACK)
+                    row = 7 - row;
+                if (p.getType() == pieceType.KING) {
+                    // Blend Early and End tables
+                    double kingEarly = PSTKingEarly[row][col];
+                    double kingEnd = PSTKingEnd[row][col];
+                    pstScore += (phase * kingEarly + (1 - phase) * kingEnd) * colorMultiplier;
+                } else {
+                    pstScore += pstValues.get(p.getType())[row][col] * colorMultiplier;
+                }
+            }
         }
         return pstScore;
     }
 
+    // TODO: fix this damn thing
+    // private double evalMobility(Board board){
+    // double mobilityScore = 0;
+    // for(Piece p : board.getPieceList(pieceColour.WHITE)){
+
+    // }
+    // }
+
     // Determine game stage from material score x using interpolation
-    // 1 is opening, 0.5 is middlegame, 0 is endgame
-    private double gameStageScore(double x){
-        return (-32*x*x + 8*x + 239);
+    // 1 is opening, 0 is endgame
+    private double getGamePhase(Board board) {
+        int totalPhase = 24; // Non pawn material
+        int currentPhase = 0;
+        for (pieceColour color : pieceColour.values()) {
+            for (Piece p : board.getPieceList(color)) {
+                if (p.getType() == pieceType.QUEEN) {
+                    currentPhase += 4;
+                } else if (p.getType() == pieceType.ROOK) {
+                    currentPhase += 2;
+                } else if (p.getType() == pieceType.BISHOP || p.getType() == pieceType.KNIGHT) {
+                    currentPhase += 1;
+                }
+            }
+        }
+        return (double) currentPhase / totalPhase;
+    }
+
+    private double evalTropism(Board board){
+        double tropScore = 0;
+        Coordinates whiteKing = board.findKing(pieceColour.WHITE);
+        Coordinates blackKing = board.findKing(pieceColour.BLACK);
+
+        for(Piece p : board.getPieceList(pieceColour.WHITE)){
+            tropScore += tropismBonus(p, blackKing);
+        }
+        for(Piece p : board.getPieceList(pieceColour.BLACK)){
+            tropScore += tropismBonus(p, whiteKing);
+        }
+        return tropScore;
+    }
+
+    private double tropismBonus(Piece p, Coordinates kingPos){
+        int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol()) + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
+        return 0.1*(7-dist); // Empirical, adjust as necessary
     }
 }

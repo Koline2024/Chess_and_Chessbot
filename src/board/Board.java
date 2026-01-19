@@ -184,6 +184,7 @@ public class Board {
     }
 
     private void initialise() {
+
         // --- WHITE PIECES ---
         // Rooks, Knights, Bishops, Queen, King (Rank 1)
         setPiece(new Coordinates(1, 'a'), new Rook(pieceColour.WHITE, new Coordinates(1, 'a')));
@@ -254,7 +255,7 @@ public class Board {
         return false;
     }
 
-    private Coordinates findKing(pieceColour colour) {
+    public Coordinates findKing(pieceColour colour) {
         ArrayList<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
 
         for (Piece p : pieceList) {
