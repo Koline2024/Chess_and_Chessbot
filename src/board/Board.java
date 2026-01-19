@@ -140,6 +140,7 @@ public class Board {
             int endCol = move.getMoveTo().getCol();
             King k = (King) move.piece; // Casting is lazy but fine because king is ensured prior
             if (k.hasMoved() == true) {
+                System.out.println("Cannot castle because king has moved prior. ");
                 return false;
             }
             // Check the rook
@@ -147,17 +148,20 @@ public class Board {
             // Guard clause
             if (grid[row][rookCol] != null) {
                 if (grid[row][rookCol].getType() != pieceType.ROOK) {
+                    System.out.println("Not a rook you are trying to castle with. ");
                     return false;
                 }
             }
             Rook rook = (Rook) grid[row][rookCol]; // Again casting is fine since rook is ensured
             if (rook == null || rook.getColour() != k.getColour() || rook.hasMoved()) {
+                System.out.println("Error in castling with the rook. ");
                 return false;
             }
 
             int step = (endCol > startCol) ? 1 : -1;
             for (int c = startCol + step; c != rookCol; c += step) {
                 if (grid[row][c] != null)
+                    System.out.println("Castling middle square blocked");
                     return false; // Square is blocked
             }
 
@@ -224,6 +228,9 @@ public class Board {
 
         grid[originalCoords.getRow()][originalCoords.getCol()] = null;
         grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
+        if(capturedPiece != null){
+            removePieceFromSystem(capturedPiece);
+        }
         move.piece.setCoordinates(move.getMoveTo());
         // Find where the king is
         Coordinates kingPos = findKing(move.piece.getColour());
@@ -233,9 +240,17 @@ public class Board {
         grid[originalCoords.getRow()][originalCoords.getCol()] = move.piece;
         grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
         move.piece.setCoordinates(originalCoords);
+        addPieceToSystem(capturedPiece);
         return safe;
     }
 
+    /**
+     * Takes as parameters the coordinates of the square and the colour of
+     * ALLIED pieces. Internally computes arraylist of enemy pieces.
+     * @param coords
+     * @param colour
+     * @return
+     */
     public boolean isSquareAttacked(Coordinates coords, pieceColour colour) {
         ArrayList<Piece> enemyPieces = (colour == pieceColour.WHITE) ? blackPieces : whitePieces;
         for (Piece p : enemyPieces) {
@@ -356,6 +371,7 @@ public class Board {
         if (p == null) {
             return;
         }
+        grid[p.getCoordinates().getRow()][p.getCoordinates().getCol()] = null;
         getPieceList(p.getColour()).remove(p);
     }
 
