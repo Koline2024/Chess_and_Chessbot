@@ -3,62 +3,35 @@ package board;
 import pieces.Piece;
 import enums.*;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 public class Eval {
+
+    // Stage of the game: 0 is opening, 1 is endgame
+    private double stage = 0;
+    // Map of piece types to material value
+    private static final Map<pieceType, Double> materialValues = new EnumMap<>(pieceType.class);
+    static{
+    materialValues.put(pieceType.PAWN, 1.0);
+    materialValues.put(pieceType.KNIGHT, 3.0);
+    materialValues.put(pieceType.BISHOP, 3.0); 
+    materialValues.put(pieceType.ROOK, 5.0);
+    materialValues.put(pieceType.QUEEN, 9.0);
+    materialValues.put(pieceType.KING, 200.0);
+    }
+
     public Eval() {
     }
 
-    public double evalPosition(Board board) {
+    private double evalMaterial(Board board) {
         double materialScore = 0;
         // Material
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                Piece p = board.getPieceAt(i, j);
-                if (p != null) {
-                    if (p.getColour() == pieceColour.WHITE) {
-                        switch (p.getType()) {
-                            case PAWN:
-                                materialScore += 1;
-                                break;
-                            case KNIGHT:
-                                materialScore += 3;
-                                break;
-                            case BISHOP:
-                                materialScore += 3;
-                                break;
-                            case ROOK:
-                                materialScore += 5;
-                                break;
-                            case QUEEN:
-                                materialScore += 9;
-                                break;
-                            case KING:
-                                materialScore += 200;
-                                break;
-                        }
-                    }else{
-                        switch (p.getType()) {
-                            case PAWN:
-                                materialScore -= 1;
-                                break;
-                            case KNIGHT:
-                                materialScore -= 3;
-                                break;
-                            case BISHOP:
-                                materialScore -= 3;
-                                break;
-                            case ROOK:
-                                materialScore -= 5;
-                                break;
-                            case QUEEN:
-                                materialScore -= 9;
-                                break;
-                            case KING:
-                                materialScore -= 200;
-                                break;
-                        }
-                    }
-                }
-            }
+        for(Piece p : board.getPieceList(pieceColour.WHITE)){
+            materialScore += materialValues.get(p.getType());
+        }
+        for(Piece p : board.getPieceList(pieceColour.BLACK)){
+            materialScore -= materialValues.get(p.getType());
         }
 
         // Implement game phase recognition based on materialScore
@@ -77,5 +50,14 @@ public class Eval {
         
 
         return materialScore;
+    }
+
+    public double evalAll(Board board, boolean isWhiteTurn){
+        double totalScore = 0;
+        totalScore += evalMaterial(board);
+        // Tempo bonus
+        totalScore += (isWhiteTurn) ? 0.1 : -0.1;
+
+        return totalScore;
     }
 }

@@ -37,7 +37,7 @@ public class Game {
                 processInput(input);
                 gameStateWhite = board.getGameState(pieceColour.WHITE);
                 gameStateBlack = board.getGameState(pieceColour.BLACK);
-                System.out.println(eval.evalPosition(board));
+                System.out.println(eval.evalAll(board, isWhiteTurn));
             } catch (IOException e) {
                 System.out.println("Invalid move! ");
             }

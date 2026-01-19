@@ -9,6 +9,8 @@ import pieces.Bishop;
 import pieces.King;
 import pieces.Knight;
 import pieces.Pawn;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 public class Board {
@@ -16,9 +18,12 @@ public class Board {
     private Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
+    private ArrayList<Piece> whitePieces = new ArrayList<>();
+    private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
         initialise();
+        syncPieceLists();
     }
 
     public String getGameState(pieceColour colour) {
@@ -65,6 +70,9 @@ public class Board {
             move.setWasFirstMove(((Pawn) move.piece).getCanMoveTwo());
         }
         move.setCapturedPiece(getPiece(move.getMoveTo()));
+        if (move.getCapturePiece() != null) {
+            removePieceFromSystem(move.getCapturePiece());
+        }
 
         grid[move.getMoveFrom().getRow()][move.getMoveFrom().getCol()] = null;
         setPiece(move.getMoveTo(), move.piece);
@@ -196,8 +204,6 @@ public class Board {
             setPiece(new Coordinates(7, file), new Pawn(pieceColour.BLACK, new Coordinates(7, file)));
         }
 
-        setPiece(new Coordinates(2, 'a'), new Pawn(pieceColour.BLACK, new Coordinates(7, 'a')));
-
         // Rooks, Knights, Bishops, Queen, King (Rank 8)
         setPiece(new Coordinates(8, 'a'), new Rook(pieceColour.BLACK, new Coordinates(8, 'a')));
         setPiece(new Coordinates(8, 'b'), new Knight(pieceColour.BLACK, new Coordinates(8, 'b')));
@@ -229,33 +235,28 @@ public class Board {
     }
 
     private boolean isSquareAttacked(Coordinates coords, pieceColour colour) {
-        for (Piece[] pRow : grid) {
-            for (Piece p : pRow) {
-                if (p != null && p.getColour() != colour) {
-                    if (p.getType() == pieceType.PAWN) {
-                        if (((Pawn) p).canAttack(coords, this)) {
-                            return true;
-                        }
-                    } else {
-                        if (p.isValidMove(coords, this)) {
-                            return true;
-                        }
-                    }
+        ArrayList<Piece> enemyPieces = (colour == pieceColour.WHITE) ? blackPieces : whitePieces;
+        for (Piece p : enemyPieces) {
+            if (p.getType() == pieceType.PAWN) {
+                if (((Pawn) p).canAttack(coords, this)) {
+                    return true;
+                }
+            } else {
+                if (p.isValidMove(coords, this)) {
+                    return true;
                 }
             }
         }
+
         return false;
     }
 
     private Coordinates findKing(pieceColour colour) {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                Piece p = grid[i][j];
-                if (p != null) {
-                    if (p.getType() == pieceType.KING && p.getColour() == colour) {
-                        return p.getCoordinates();
-                    }
-                }
+        ArrayList<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
+
+        for (Piece p : pieceList) {
+            if (p.getType() == pieceType.KING) {
+                return p.getCoordinates();
             }
         }
         return null;
@@ -278,7 +279,11 @@ public class Board {
     }
 
     public void promote(Coordinates coords, Piece toPiece) {
-        setPiece(coords, toPiece);
+        Piece oldPawn = getPiece(coords);
+        removePieceFromSystem(oldPawn); // Take the pawn out of the list
+
+        setPiece(coords, toPiece); // Put queen on grid
+        addPieceToSystem(toPiece); // Put queen in the list;
         System.out.println("Pawn promoted to " + toPiece.getSymbol());
     }
 
@@ -287,6 +292,9 @@ public class Board {
             return;
         }
         Move last = history.pop();
+        if (last.getCapturePiece() != null) {
+            addPieceToSystem(last.getCapturePiece());
+        }
 
         // Put the piece back
         grid[last.from.getRow()][last.from.getCol()] = last.piece;
@@ -298,9 +306,9 @@ public class Board {
             last.getCapturePiece().setCoordinates(last.to);
         }
 
-        if(last.wasFirstMove()){
+        if (last.wasFirstMove()) {
             last.piece.setMoved(false);
-            if(last.piece.getType() == pieceType.PAWN){
+            if (last.piece.getType() == pieceType.PAWN) {
                 ((Pawn) last.piece).setCanMoveTwo(true);
             }
         }
@@ -316,10 +324,36 @@ public class Board {
             setPiece(new Coordinates(lastMove.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
             rook.setMoved(false);
         }
+    }
 
-        if (last.piece.getType() == pieceType.PAWN) {
+    public List<Piece> getPieceList(pieceColour colour) {
+        return (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
+    }
 
+    public void syncPieceLists() {
+        whitePieces.clear();
+        blackPieces.clear();
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                Piece p = grid[i][j];
+                if (p != null) {
+                    addPieceToSystem(p);
+                }
+            }
         }
     }
 
+    private void addPieceToSystem(Piece p) {
+        if (p == null) {
+            return;
+        }
+        getPieceList(p.getColour()).add(p);
+    }
+
+    private void removePieceFromSystem(Piece p) {
+        if (p == null) {
+            return;
+        }
+        getPieceList(p.getColour()).remove(p);
+    }
 }
