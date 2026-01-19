@@ -11,6 +11,7 @@ public abstract class Piece {
     pieceColour colour;
     pieceType type;
     Coordinates coordinates;
+    boolean hasMoved;
 
     public Piece(pieceType type, pieceColour colour, Coordinates coordinates) {
         this.colour = colour;
@@ -40,6 +41,14 @@ public abstract class Piece {
 
     public void setCoordinates(Coordinates newCoordinates) {
         coordinates = newCoordinates;
+    }
+
+    public boolean hasMoved(){
+        return hasMoved;
+    }
+
+    public void setMoved(boolean x){
+        hasMoved = x;
     }
 
     public abstract boolean isValidMove(Coordinates target, Board board);

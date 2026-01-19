@@ -9,8 +9,7 @@ import enums.pieceType;
 
 public class Pawn extends Piece {
 
-    boolean canMoveTwo = true;
-    private boolean justMovedTwice = false;
+    private boolean canMoveTwo = true;
 
     public Pawn(pieceColour colour, Coordinates coordinates) {
         super(pieceType.PAWN, colour, coordinates);
@@ -27,8 +26,6 @@ public class Pawn extends Piece {
         // Conditions: upDown must be in proper direction, no piece, and cannot move
         // left right
         if (dUpDown == moveDir && board.getPiece(target) == null && dLeftRight == 0) {
-            canMoveTwo = false;
-            justMovedTwice = false;
             return true;
         }
 
@@ -39,8 +36,6 @@ public class Pawn extends Piece {
             Piece toBeCaptured = board.getPiece(target);
             // Only allow opposite colour capturing lol
             if (toBeCaptured.getColour() != colour) {
-                canMoveTwo = false;
-                justMovedTwice = false;
                 return true;
             } else {
                 return false;
@@ -48,11 +43,9 @@ public class Pawn extends Piece {
         }
 
         // Two-square initial move
-        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && canMoveTwo) {
+        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && !hasMoved) {
             Coordinates between = new Coordinates(coordinates.getRank() + moveDir, coordinates.getFile());
             if (board.getPiece(between) == null) {
-                canMoveTwo = false;
-                justMovedTwice = true;
                 return true;
             }
         }
@@ -78,14 +71,6 @@ public class Pawn extends Piece {
         return false;
     }
 
-    public boolean getCanMoveTwo() {
-        return canMoveTwo;
-    }
-
-    public boolean hasJustMovedTwice() {
-        return justMovedTwice;
-    }
-
     @Override
     public String getSymbol() {
         if (colour == pieceColour.WHITE) {
@@ -93,6 +78,14 @@ public class Pawn extends Piece {
         } else {
             return "Pb";
         }
+    }
+
+    public boolean getCanMoveTwo(){
+        return canMoveTwo;
+    }
+
+    public void setCanMoveTwo(boolean x){
+        canMoveTwo = x;
     }
 
 }

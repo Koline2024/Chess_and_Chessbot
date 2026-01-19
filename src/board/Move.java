@@ -4,7 +4,6 @@
 package board;
 
 import pieces.Piece;
-import enums.pieceType;
 
 public class Move {
     public final Piece piece;
@@ -16,7 +15,7 @@ public class Move {
     private boolean isEnPassant;
     private boolean isCastling;
     private boolean isPromotion;
-    private pieceType promotionType;
+    private boolean wasFirstMove;
 
     public Move(Piece piece, Coordinates from, Coordinates to){
         this.piece = piece;
@@ -46,6 +45,22 @@ public class Move {
 
     public boolean isEnPassant(){
         return isEnPassant;
+    }
+
+    public Piece getCapturePiece(){
+        return capturedPiece;
+    }
+
+    public void setCapturedPiece(Piece p){
+        capturedPiece = p;
+    }
+    
+    public boolean wasFirstMove(){
+        return wasFirstMove;
+    }
+
+    public void setWasFirstMove(boolean x){
+        wasFirstMove = x;
     }
 
 }

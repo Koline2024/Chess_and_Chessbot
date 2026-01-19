@@ -24,8 +24,14 @@ public class Game {
             System.out.print("Enter Move: ");
             try {
                 String input = keyboard.readLine();
+                // Exit
                 if (input.equals("exit")) {
                     break;
+                }
+                // Undo shortcut
+                if (input.equals("undo")){
+                    board.undoMove(); 
+                    isWhiteTurn = !isWhiteTurn;
                 }
                 // Throw an IOexception if input is invalid
                 processInput(input);
