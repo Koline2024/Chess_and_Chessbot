@@ -81,8 +81,8 @@ public class Game {
             if (board.isMoveLegal(move)) {
                 board.doMove(move);
                 if(move.piece.getType() == pieceType.PAWN){
-                    int rank = move.getMoveFrom().getRank();
-                    if(rank == 1 || rank == 8){
+                    int rank = move.getMoveTo().getRank();
+                     if(rank == 1 || rank == 8){
                         handlePromotion(move.getMoveTo(), move.piece.getColour());
                     }
                 }
@@ -115,7 +115,6 @@ public class Game {
                     newPiece = new Queen(colour, coords);
             }
             board.promote(coords, newPiece);
-            reader.close();
         } catch (Exception e) {
             System.out.println("IO Exception! ");
         }

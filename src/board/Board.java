@@ -196,6 +196,8 @@ public class Board {
             setPiece(new Coordinates(7, file), new Pawn(pieceColour.BLACK, new Coordinates(7, file)));
         }
 
+        setPiece(new Coordinates(2, 'a'), new Pawn(pieceColour.BLACK, new Coordinates(7, 'a')));
+
         // Rooks, Knights, Bishops, Queen, King (Rank 8)
         setPiece(new Coordinates(8, 'a'), new Rook(pieceColour.BLACK, new Coordinates(8, 'a')));
         setPiece(new Coordinates(8, 'b'), new Knight(pieceColour.BLACK, new Coordinates(8, 'b')));
