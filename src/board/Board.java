@@ -267,5 +267,9 @@ public class Board {
         System.out.println("   a   b   c   d   e   f   g   h"); // File headers
     }
 
+    public void promote(Coordinates coords, Piece toPiece){
+        setPiece(coords, toPiece);
+        System.out.println("Pawn promoted to " + toPiece.getSymbol());
+    }
 
 }

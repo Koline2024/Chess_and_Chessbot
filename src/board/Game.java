@@ -1,13 +1,13 @@
 package board;
 
-import pieces.Piece;
-import pieces.King;
+import pieces.*;
 import enums.*;
 import java.io.*;
 
 public class Game {
     private Board board;
     private boolean isWhiteTurn;
+    private Eval eval = new Eval();
 
     public Game() {
         this.board = new Board();
@@ -31,6 +31,7 @@ public class Game {
                 processInput(input);
                 gameStateWhite = board.getGameState(pieceColour.WHITE);
                 gameStateBlack = board.getGameState(pieceColour.BLACK);
+                System.out.println(eval.evalPosition(board));
             } catch (IOException e) {
                 System.out.println("Invalid move! ");
             }
@@ -73,6 +74,12 @@ public class Game {
             Move move = new Move(p, initCoords, finalCoords);
             if (board.isMoveLegal(move)) {
                 board.doMove(move);
+                if(move.piece.getType() == pieceType.PAWN){
+                    int rank = move.getMoveFrom().getRank();
+                    if(rank == 1 || rank == 8){
+                        handlePromotion(move.getMoveTo(), move.piece.getColour());
+                    }
+                }
                 isWhiteTurn = !isWhiteTurn;
             } else {
                 System.out.println("Move is illegal!");
@@ -82,6 +89,32 @@ public class Game {
         }
 
     }
+
+    private void handlePromotion(Coordinates coords, pieceColour colour){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Choose promoted piece: Q, R, B, N");
+        try {
+            String choice = reader.readLine();
+            Piece newPiece;
+            switch(choice){
+                case "R":
+                    newPiece = new Rook(colour, coords);
+                    break;
+                case "B":
+                    newPiece = new Bishop(colour, coords);
+                    break;
+                case "N":
+                    newPiece = new Knight(colour, coords);
+                default:
+                    newPiece = new Queen(colour, coords);
+            }
+            board.promote(coords, newPiece);
+            reader.close();
+        } catch (Exception e) {
+            System.out.println("IO Exception! ");
+        }
+    }
+    
 
     private void handleCastling(String type) {
         int rank = isWhiteTurn ? 1 : 8; // White is Rank 1, Black is Rank 8
