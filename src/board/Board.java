@@ -82,6 +82,7 @@ public class Board {
         // Castling rook swap
         if (move.isCastling()) {
             int row = move.getMoveFrom().getRow();
+            // Kingside vs Queenside ternary
             int rookStartCol = (move.getMoveTo().getCol() == 6) ? 7 : 0;
             int rookEndCol = (move.getMoveTo().getCol() == 6) ? 5 : 3;
 
@@ -146,8 +147,10 @@ public class Board {
             // Check the rook
             int rookCol = (endCol == 6) ? 7 : 0;
             // Guard clause
-            if (grid[row][rookCol].getType() != pieceType.ROOK) {
-                return false;
+            if (grid[row][rookCol] != null) {
+                if (grid[row][rookCol].getType() != pieceType.ROOK) {
+                    return false;
+                }
             }
             Rook rook = (Rook) grid[row][rookCol]; // Again casting is fine since rook is ensured
             if (rook == null || rook.getColour() != k.getColour() || rook.hasMoved()) {
@@ -321,7 +324,7 @@ public class Board {
 
             Rook rook = (Rook) grid[row][rookEndCol];
             grid[row][rookEndCol] = null; // Clear square
-            setPiece(new Coordinates(lastMove.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
+            setPiece(new Coordinates(last.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
             rook.setMoved(false);
         }
     }
