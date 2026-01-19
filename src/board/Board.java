@@ -360,4 +360,6 @@ public class Board {
         }
         getPieceList(p.getColour()).remove(p);
     }
+
+    // public ArrayList<Move> getAllLegalMoves(pieceColour colour){}
 }

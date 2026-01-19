@@ -208,13 +208,13 @@ public class Eval {
             tropScore += tropismBonus(p, blackKing);
         }
         for(Piece p : board.getPieceList(pieceColour.BLACK)){
-            tropScore += tropismBonus(p, whiteKing);
+            tropScore -= tropismBonus(p, whiteKing);
         }
         return tropScore;
     }
 
     private double tropismBonus(Piece p, Coordinates kingPos){
         int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol()) + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
-        return 0.1*(7-dist); // Empirical, adjust as necessary
+        return 0.05*(7-dist); // Empirical, adjust as necessary
     }
 }
