@@ -3,6 +3,10 @@ package pieces;
 import enums.pieceColour;
 import enums.pieceType;
 import board.Coordinates;
+import board.Move;
+
+import java.util.ArrayList;
+
 import board.Board;
 
 public abstract class Piece {
@@ -54,5 +58,6 @@ public abstract class Piece {
     public abstract boolean isValidMove(Coordinates target, Board board);
 
     public abstract String getSymbol();
+
 
 }

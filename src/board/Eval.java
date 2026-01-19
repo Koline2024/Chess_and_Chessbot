@@ -29,6 +29,17 @@ public class Eval {
         materialValues.put(pieceType.KING, 200.0);
     }
 
+    // Map of piece types to mobility value
+    private static Map<pieceType, Double> mobilityValues = new EnumMap<>(pieceType.class);
+    static {
+        mobilityValues.put(pieceType.PAWN, 0.001);
+        mobilityValues.put(pieceType.KNIGHT, 0.001); // Knights jump over other pieces anyway
+        mobilityValues.put(pieceType.BISHOP, 0.01); // Bishop mobility is important
+        mobilityValues.put(pieceType.ROOK, 0.01); 
+        mobilityValues.put(pieceType.QUEEN, 0.01); 
+        mobilityValues.put(pieceType.KING, 0.0); 
+    }
+
     // PSTs below
     private static double[][] PSTPawn = {
             // Encourage pawns to push & control centre
@@ -128,8 +139,9 @@ public class Eval {
         totalScore += evalMaterial(board);
         totalScore += evalPST(board);
         totalScore += evalTropism(board);
+        totalScore += evalMobility(board);
         // Tempo bonus
-        totalScore += (isWhiteTurn) ? 0.1 : -0.1;
+        // totalScore += (isWhiteTurn) ? 0.1 : -0.1;
 
         return totalScore;
     }
@@ -172,13 +184,16 @@ public class Eval {
         return pstScore;
     }
 
-    // TODO: fix this damn thing
-    // private double evalMobility(Board board){
-    // double mobilityScore = 0;
-    // for(Piece p : board.getPieceList(pieceColour.WHITE)){
-
-    // }
-    // }
+    private double evalMobility(Board board) {
+        double mobilityScore = 0;
+        for(Move m : board.getLegalMoves(pieceColour.WHITE)){
+            mobilityScore += mobilityValues.get(m.piece.getType());
+        }
+        for(Move m : board.getLegalMoves(pieceColour.BLACK)){
+            mobilityScore -= mobilityValues.get(m.piece.getType());
+        }
+        return mobilityScore;
+    }
 
     // Determine game stage from material score x using interpolation
     // 1 is opening, 0 is endgame
@@ -199,22 +214,23 @@ public class Eval {
         return (double) currentPhase / totalPhase;
     }
 
-    private double evalTropism(Board board){
+    private double evalTropism(Board board) {
         double tropScore = 0;
         Coordinates whiteKing = board.findKing(pieceColour.WHITE);
         Coordinates blackKing = board.findKing(pieceColour.BLACK);
 
-        for(Piece p : board.getPieceList(pieceColour.WHITE)){
+        for (Piece p : board.getPieceList(pieceColour.WHITE)) {
             tropScore += tropismBonus(p, blackKing);
         }
-        for(Piece p : board.getPieceList(pieceColour.BLACK)){
+        for (Piece p : board.getPieceList(pieceColour.BLACK)) {
             tropScore -= tropismBonus(p, whiteKing);
         }
         return tropScore;
     }
 
-    private double tropismBonus(Piece p, Coordinates kingPos){
-        int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol()) + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
-        return 0.05*(7-dist); // Empirical, adjust as necessary
+    private double tropismBonus(Piece p, Coordinates kingPos) {
+        int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol())
+                + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
+        return 0.05 * (7 - dist); // Empirical, adjust as necessary
     }
 }

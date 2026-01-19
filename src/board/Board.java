@@ -45,9 +45,7 @@ public class Board {
                             Move testMove = new Move(p, p.getCoordinates(), to);
 
                             if (isMoveLegal(testMove)) {
-                                System.out.println("You can move " + testMove.getMoveFrom().toString() + " to "
-                                        + testMove.getMoveTo().toString());
-                                return "PLAYING"; // Found a move! No need to check any others.
+                                return "PLAYING"; // Found a move
                             }
                         }
                     }
@@ -238,7 +236,7 @@ public class Board {
         return safe;
     }
 
-    private boolean isSquareAttacked(Coordinates coords, pieceColour colour) {
+    public boolean isSquareAttacked(Coordinates coords, pieceColour colour) {
         ArrayList<Piece> enemyPieces = (colour == pieceColour.WHITE) ? blackPieces : whitePieces;
         for (Piece p : enemyPieces) {
             if (p.getType() == pieceType.PAWN) {
@@ -361,5 +359,33 @@ public class Board {
         getPieceList(p.getColour()).remove(p);
     }
 
-    // public ArrayList<Move> getAllLegalMoves(pieceColour colour){}
+    public List<Move> getLegalMoves(pieceColour colour) {
+        List<Move> legalMoves = new ArrayList<>();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece p = grid[row][col];
+                // If piece belongs to the active player
+                if (p != null && p.getColour() == colour) {
+                    // Check all squares for this piece
+                    for (int tRow = 0; tRow < 8; tRow++) {
+                        for (int tCol = 0; tCol < 8; tCol++) {
+                            // Skip own pieces
+                            Piece target = grid[tRow][tCol];
+                            if (target != null && target.getColour() == colour) {
+                                continue;
+                            }
+                            Coordinates to = new Coordinates(8 - tRow, (char) ('a' + tCol));
+                            Move move = new Move(p, p.getCoordinates(), to);
+
+                            // This is the expensive check:
+                            if (isMoveLegal(move)) {
+                                legalMoves.add(move);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return legalMoves;
+    }
 }

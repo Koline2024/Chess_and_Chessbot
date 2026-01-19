@@ -8,6 +8,7 @@ public class Game {
     private Board board;
     private boolean isWhiteTurn;
     private Eval eval = new Eval();
+    private Search AI;
 
     public Game() {
         this.board = new Board();
@@ -18,36 +19,74 @@ public class Game {
         BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
         String gameStateWhite = board.getGameState(pieceColour.WHITE);
         String gameStateBlack = board.getGameState(pieceColour.BLACK);
+        AI = new Search();
         while (gameStateWhite.equals("PLAYING") && gameStateBlack.equals("PLAYING")) {
             board.printBoard();
-            System.out.println((isWhiteTurn ? "White" : "Black") + "'s Turn");
-            System.out.print("Enter Move: ");
-            try {
-                String input = keyboard.readLine();
-                // Exit
-                if (input.equals("exit")) {
-                    break;
+            if (isWhiteTurn) {
+                System.out.println("Your turn. Enter move: ");
+                try {
+                    String input = keyboard.readLine();
+                    // Exit
+                    if (input.equals("exit")) {
+                        break;
+                    }
+                    // Undo shortcut
+                    if (input.equals("undo")) {
+                        board.undoMove();
+                        isWhiteTurn = !isWhiteTurn;
+                    }
+                    if (input.equals("list")) {
+                        System.out.println(board.getLegalMoves(pieceColour.WHITE));
+                    }
+                    // Throw an IOexception if input is invalid
+                    processInput(input);
+                    gameStateWhite = board.getGameState(pieceColour.WHITE);
+                    gameStateBlack = board.getGameState(pieceColour.BLACK);
+                    System.out.println(eval.evalAll(board, isWhiteTurn));
+                    // System.out.println(findBestMove(board, 5, isWhiteTurn));
+                } catch (IOException e) {
+                    System.out.println("Invalid move! ");
                 }
-                // Undo shortcut
-                if (input.equals("undo")){
-                    board.undoMove(); 
-                    isWhiteTurn = !isWhiteTurn;
-                }
-                // Throw an IOexception if input is invalid
-                processInput(input);
-                gameStateWhite = board.getGameState(pieceColour.WHITE);
-                gameStateBlack = board.getGameState(pieceColour.BLACK);
-                System.out.println(eval.evalAll(board, isWhiteTurn));
-            } catch (IOException e) {
-                System.out.println("Invalid move! ");
+            }else{
+                handleAImove();
             }
         }
+
+        // while (gameStateWhite.equals("PLAYING") && gameStateBlack.equals("PLAYING")) {
+        //     board.printBoard();
+        //     System.out.println((isWhiteTurn ? "White" : "Black") + "'s Turn");
+        //     System.out.print("Enter Move: ");
+        //     try {
+        //         String input = keyboard.readLine();
+        //         // Exit
+        //         if (input.equals("exit")) {
+        //             break;
+        //         }
+        //         // Undo shortcut
+        //         if (input.equals("undo")) {
+        //             board.undoMove();
+        //             isWhiteTurn = !isWhiteTurn;
+        //         }
+        //         if (input.equals("list")) {
+        //             System.out.println(board.getLegalMoves(pieceColour.WHITE));
+        //         }
+        //         // Throw an IOexception if input is invalid
+        //         processInput(input);
+        //         gameStateWhite = board.getGameState(pieceColour.WHITE);
+        //         gameStateBlack = board.getGameState(pieceColour.BLACK);
+        //         System.out.println(eval.evalAll(board, isWhiteTurn));
+        //         // System.out.println(findBestMove(board, 5, isWhiteTurn));
+        //     } catch (IOException e) {
+        //         System.out.println("Invalid move! ");
+        //     }
+        // }
+        
         board.printBoard();
-        if(gameStateWhite.equals("CHECKMATE")){
+        if (gameStateWhite.equals("CHECKMATE")) {
             System.out.println("Black wins by checkmate! ");
-        }else if(gameStateBlack.equals("CHECKMATE")){
+        } else if (gameStateBlack.equals("CHECKMATE")) {
             System.out.println("White wins by checkmate! ");
-        }else if(gameStateBlack.equals("STALEMATE")){
+        } else if (gameStateBlack.equals("STALEMATE")) {
             System.out.println("Draw by stalemate! ");
         }
     }
@@ -80,9 +119,9 @@ public class Game {
             Move move = new Move(p, initCoords, finalCoords);
             if (board.isMoveLegal(move)) {
                 board.doMove(move);
-                if(move.piece.getType() == pieceType.PAWN){
+                if (move.piece.getType() == pieceType.PAWN) {
                     int rank = move.getMoveTo().getRank();
-                     if(rank == 1 || rank == 8){
+                    if (rank == 1 || rank == 8) {
                         handlePromotion(move.getMoveTo(), move.piece.getColour());
                     }
                 }
@@ -96,13 +135,13 @@ public class Game {
 
     }
 
-    private void handlePromotion(Coordinates coords, pieceColour colour){
+    private void handlePromotion(Coordinates coords, pieceColour colour) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         System.out.println("Choose promoted piece: Q, R, B, N");
         try {
             String choice = reader.readLine();
             Piece newPiece;
-            switch(choice){
+            switch (choice) {
                 case "R":
                     newPiece = new Rook(colour, coords);
                     break;
@@ -119,7 +158,6 @@ public class Game {
             System.out.println("IO Exception! ");
         }
     }
-    
 
     private void handleCastling(String type) {
         int rank = isWhiteTurn ? 1 : 8; // White is Rank 1, Black is Rank 8
@@ -149,5 +187,18 @@ public class Game {
         } else {
             System.out.println("Castling is illegal!");
         }
+    }
+
+    private void handleAImove(){
+        System.out.println("Chessbot is thinking... ");
+        Move bestMove = AI.findBestMove(board, 3, isWhiteTurn);
+        if(bestMove != null){
+            board.doMove(bestMove);
+            System.out.println("Chessbot played " + bestMove);
+        }else{
+            System.out.println("Chessbot has no legal moves. ");
+        }
+        board.printBoard();
+        isWhiteTurn = !isWhiteTurn;
     }
 }

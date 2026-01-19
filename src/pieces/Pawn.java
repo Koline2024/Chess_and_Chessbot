@@ -1,7 +1,10 @@
 package pieces;
 
+import java.util.ArrayList;
+
 import board.Board;
 import board.Coordinates;
+import board.Move;
 import enums.pieceColour;
 import enums.pieceType;
 

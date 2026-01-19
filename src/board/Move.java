@@ -63,4 +63,8 @@ public class Move {
         wasFirstMove = x;
     }
 
+    @Override
+    public String toString(){
+        return piece.getSymbol() + ": " + from + " to " + to; 
+    }
 }
