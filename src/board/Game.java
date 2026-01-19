@@ -191,7 +191,7 @@ public class Game {
 
     private void handleAImove(){
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 3, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, 4, isWhiteTurn);
         if(bestMove != null){
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);

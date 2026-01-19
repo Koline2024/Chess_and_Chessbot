@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import javax.management.RuntimeErrorException;
+
 public class Board {
 
     private Stack<Move> history = new Stack<>();
@@ -269,7 +271,7 @@ public class Board {
         return false;
     }
 
-    public Coordinates findKing(pieceColour colour) {
+    public Coordinates findKing(pieceColour colour) throws RuntimeException{
         ArrayList<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
 
         for (Piece p : pieceList) {
@@ -277,7 +279,14 @@ public class Board {
                 return p.getCoordinates();
             }
         }
-        return null;
+        // If we reach here, something went wrong. Sync and retry.
+        syncPieceLists();
+        for (Piece p : pieceList) {
+            if (p.getType() == pieceType.KING) {
+                return p.getCoordinates();
+            }
+        }
+        throw new RuntimeErrorException(null);
     }
 
     public void printBoard() {

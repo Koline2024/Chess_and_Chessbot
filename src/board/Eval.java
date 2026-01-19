@@ -195,7 +195,7 @@ public class Eval {
         return mobilityScore;
     }
 
-    // Determine game stage from material score x using interpolation
+    // Determine game stage from material score 
     // 1 is opening, 0 is endgame
     private double getGamePhase(Board board) {
         int totalPhase = 24; // Non pawn material
