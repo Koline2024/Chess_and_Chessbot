@@ -49,7 +49,7 @@ public class Eval {
             { 0.05, 0.05, 0.1, 0.25, 0.25, 0.1, 0.05, 0.05 },
             { 0, 0, 0, 0.1, 0.1, 0, 0, 0 },
             { 0.05, 0.05, 0.1, 0, 0, 0.1, 0.05, 0.05 }, // Encourage middle two to advance and others to support
-            { 0, 0, 0, -0.2, -0.2, 0, 0, 0 }, // Discourage idle centre
+            { 0, 0, 0, -0.5, -0.5, 0, 0, 0 }, // Discourage idle centre
             { 0, 0, 0, 0, 0, 0, 0, 0 }
     };
 

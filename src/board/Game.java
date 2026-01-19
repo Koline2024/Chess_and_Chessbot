@@ -80,7 +80,7 @@ public class Game {
         //         System.out.println("Invalid move! ");
         //     }
         // }
-        
+
         board.printBoard();
         if (gameStateWhite.equals("CHECKMATE")) {
             System.out.println("Black wins by checkmate! ");
@@ -198,7 +198,6 @@ public class Game {
         }else{
             System.out.println("Chessbot has no legal moves. ");
         }
-        board.printBoard();
         isWhiteTurn = !isWhiteTurn;
     }
 }

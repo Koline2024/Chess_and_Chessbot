@@ -160,9 +160,10 @@ public class Board {
 
             int step = (endCol > startCol) ? 1 : -1;
             for (int c = startCol + step; c != rookCol; c += step) {
-                if (grid[row][c] != null)
+                if (grid[row][c] != null){
                     System.out.println("Castling middle square blocked");
                     return false; // Square is blocked
+                }
             }
 
             // Square 1: Where the king starts
