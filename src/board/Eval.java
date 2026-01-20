@@ -140,8 +140,6 @@ public class Eval {
         totalScore += evalPST(board);
         totalScore += evalTropism(board);
         totalScore += evalMobility(board);
-        // Tempo bonus
-        // totalScore += (isWhiteTurn) ? 0.1 : -0.1;
 
         return totalScore;
     }

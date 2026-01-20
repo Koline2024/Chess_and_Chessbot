@@ -286,24 +286,43 @@ public class Board {
                 return p.getCoordinates();
             }
         }
+        System.out.println("Even after a sync the king could not be found!");
         throw new RuntimeErrorException(null);
     }
 
     public void printBoard() {
-        for (int i = 0; i < 8; i++) {
-            System.out.print((8 - i) + " "); // Rank headers
-            for (int j = 0; j < 8; j++) {
-                Piece p = grid[i][j];
-                if (p == null) {
-                    System.out.print("[  ]"); // Empty square
-                } else {
-                    System.out.print("[" + p.getSymbol() + "]");
-                }
-            }
-            System.out.println(); // New line after each row
+    String top    = "  ╔═══╤═══╤═══╤═══╤═══╤═══╤═══╤═══╗";
+    String middle = "  ╟───┼───┼───┼───┼───┼───┼───┼───╢";
+    String bottom = "  ╚═══╧═══╧═══╧═══╧═══╧═══╧═══╧═══╝";
+    String labels = "    a   b   c   d   e   f   g   h";
+
+    System.out.println(top);
+    for (int r = 0; r < 8; r++) {
+        System.out.print((8 - r) + " ║"); // Rank number
+        for (int c = 0; c < 8; c++) {
+            Piece p = grid[r][c];
+            String symbol = (p == null) ? " " : getUnicodeSymbol(p);
+            System.out.print(" " + symbol + " │");
         }
-        System.out.println("   a   b   c   d   e   f   g   h"); // File headers
+        // Replace last │ with ║
+        System.out.print("\b║\n"); 
+        if (r < 7) System.out.println(middle);
     }
+    System.out.println(bottom);
+    System.out.println(labels);
+}
+
+private String getUnicodeSymbol(Piece p) {
+    switch (p.getType()) {
+        case PAWN:   return p.getColour() == pieceColour.WHITE ? "♙" : "♟";
+        case ROOK:   return p.getColour() == pieceColour.WHITE ? "♖" : "♜";
+        case KNIGHT: return p.getColour() == pieceColour.WHITE ? "♘" : "♞";
+        case BISHOP: return p.getColour() == pieceColour.WHITE ? "♗" : "♝";
+        case QUEEN:  return p.getColour() == pieceColour.WHITE ? "♕" : "♛";
+        case KING:   return p.getColour() == pieceColour.WHITE ? "♔" : "♚";
+        default:     return " ";
+    }
+}
 
     public void promote(Coordinates coords, Piece toPiece) {
         Piece oldPawn = getPiece(coords);

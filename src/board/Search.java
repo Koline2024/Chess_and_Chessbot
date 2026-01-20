@@ -1,9 +1,24 @@
 package board;
 
 import enums.pieceColour;
+import enums.pieceType;
+import pieces.Piece;
+
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public class Search {
+
+    private static Map<pieceType, Integer> materialValues = new EnumMap<>(pieceType.class);
+    static {
+        materialValues.put(pieceType.PAWN, 1);
+        materialValues.put(pieceType.KNIGHT, 3);
+        materialValues.put(pieceType.BISHOP, 3);
+        materialValues.put(pieceType.ROOK, 5);
+        materialValues.put(pieceType.QUEEN, 9);
+        materialValues.put(pieceType.KING, 200);
+    }
 
     private Eval evaluator = new Eval();
     private static final double inf = 1000000;
@@ -17,6 +32,8 @@ public class Search {
         double beta = Double.POSITIVE_INFINITY;
         pieceColour colour = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
         List<Move> moves = board.getLegalMoves(colour);
+        // Sort moves here for the speedup
+        sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
             double score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn);
@@ -58,6 +75,7 @@ public class Search {
             return quiescenceSearch(board, alpha, beta, isWhiteTurn);
         }
         List<Move> moves = board.getLegalMoves(turn);
+        sortMoves(moves, board);
         // Check for mating moves first
         if (moves.isEmpty()) {
             Coordinates kingPos = board.findKing(turn);
@@ -123,26 +141,57 @@ public class Search {
         }
         List<Move> moves = board.getLegalMoves(isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK);
         moves.removeIf(m -> m.getCapturePiece() == null); // Filter for only captures
+        sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
             double score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
             board.undoMove();
 
-            if (isWhiteTurn) {
-                pat = Math.max(pat, score);
-                alpha = Math.max(alpha, pat);
-            } else {
-                pat = Math.min(pat, score);
-                beta = Math.min(beta, pat);
+            if(isWhiteTurn){
+                if(score >= beta){
+                    return beta;
+                }
+                if(score > alpha){
+                    alpha = score;
+                }
+            }else{
+                if(score <= alpha){
+                    return alpha;
+                }
+                if(score < beta){
+                    beta = score;
+                }
             }
-            if (beta <= alpha) {
-                break;
-            }
+
         }
-        return pat;
+        return isWhiteTurn ? alpha : beta;
 
     }
 
+    /**
+     * Scoremove gives each possible move on the board a score
+     * based on how likely they are to be good, prioritising advantageous
+     * captures and promotions. 
+     * @param move
+     * @param board
+     * @return
+     */
+    private int scoreMove(Move move, Board board) {
+        int score = 0;
+        Piece actor = move.piece;
+        Piece victim = move.getCapturePiece();
+        if (victim != null) {
+            score = (materialValues.get(victim.getType()) * 10) - materialValues.get(actor.getType());
+            score += 10000;
+        }
+        if (move.isPromotion()) {
+            score += 8000;
+        }
+        return score;
+    }
 
-    // TODO: move sort algorithm using captures with regard to least valuable/most valuable pieces
+    public void sortMoves(List<Move> moves, Board board) {
+        moves.sort((a, b) -> Integer.compare(scoreMove(b, board), scoreMove(a, board)));
+    }
+
 }
