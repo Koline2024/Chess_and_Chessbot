@@ -314,12 +314,12 @@ public class Board {
 
 private String getUnicodeSymbol(Piece p) {
     switch (p.getType()) {
-        case PAWN:   return p.getColour() == pieceColour.WHITE ? "♙" : "♟";
-        case ROOK:   return p.getColour() == pieceColour.WHITE ? "♖" : "♜";
-        case KNIGHT: return p.getColour() == pieceColour.WHITE ? "♘" : "♞";
-        case BISHOP: return p.getColour() == pieceColour.WHITE ? "♗" : "♝";
-        case QUEEN:  return p.getColour() == pieceColour.WHITE ? "♕" : "♛";
-        case KING:   return p.getColour() == pieceColour.WHITE ? "♔" : "♚";
+        case PAWN:   return p.getColour() == pieceColour.WHITE ? "\u2659" : "\u265f";
+        case ROOK:   return p.getColour() == pieceColour.WHITE ? "\u2656" : "\u265c";
+        case KNIGHT: return p.getColour() == pieceColour.WHITE ? "\u2658" : "\u265e";
+        case BISHOP: return p.getColour() == pieceColour.WHITE ? "\u2657" : "\u265d";
+        case QUEEN:  return p.getColour() == pieceColour.WHITE ? "\u2655" : "\u265b";
+        case KING:   return p.getColour() == pieceColour.WHITE ? "\u2654" : "\u265a";
         default:     return " ";
     }
 }
