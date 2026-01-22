@@ -122,6 +122,15 @@ public class Search {
 
     }
 
+    /**
+     * Quiescence search is applied after standard minimax to 
+     * avoid the horizon effect problem.
+     * @param board
+     * @param alpha
+     * @param beta
+     * @param isWhiteTurn
+     * @return
+     */
     private double quiescenceSearch(Board board, double alpha, double beta, boolean isWhiteTurn) {
         double pat = evaluator.evalAll(board, isWhiteTurn);
         if (isWhiteTurn) {
@@ -171,7 +180,7 @@ public class Search {
     /**
      * Scoremove gives each possible move on the board a score
      * based on how likely they are to be good, prioritising advantageous
-     * captures and promotions. 
+     * captures and promotions to speed up alpha beta pruning.
      * @param move
      * @param board
      * @return

@@ -5,123 +5,111 @@ import enums.*;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.List;
 
 public class Eval {
 
-    // Implement pawn structure, pawn center, passed pawns
-    // Implement decreasing value of knight the less pawns there are
-    // Implement penalty for bad bishop based on mobility score
-    // Implement bonus for bishop pair
-    // Implement bonus for fianchetto if center is clear; penalty otherwise
-    // Implement increasing value of rook the less pawns there are
-    // Implement penalty for queen early movement (within first 10 moves)
-    // Implement king safety algorithm based on king tropism
-    // Implement minus/plus infinity penalty for any mate patterns
-
     // Map of piece types to material value
-    private static Map<pieceType, Double> materialValues = new EnumMap<>(pieceType.class);
+    private static Map<pieceType, Integer> materialValues = new EnumMap<>(pieceType.class);
     static {
-        materialValues.put(pieceType.PAWN, 1.0);
-        materialValues.put(pieceType.KNIGHT, 3.0);
-        materialValues.put(pieceType.BISHOP, 3.0);
-        materialValues.put(pieceType.ROOK, 5.0);
-        materialValues.put(pieceType.QUEEN, 9.0);
-        materialValues.put(pieceType.KING, 200.0);
+        materialValues.put(pieceType.PAWN, 100);
+        materialValues.put(pieceType.KNIGHT, 300);
+        materialValues.put(pieceType.BISHOP, 300);
+        materialValues.put(pieceType.ROOK, 500);
+        materialValues.put(pieceType.QUEEN, 900);
+        materialValues.put(pieceType.KING, 20000);
     }
 
     // Map of piece types to mobility value
-    private static Map<pieceType, Double> mobilityValues = new EnumMap<>(pieceType.class);
+    private static Map<pieceType, Integer> mobilityValues = new EnumMap<>(pieceType.class);
     static {
-        mobilityValues.put(pieceType.PAWN, 0.001);
-        mobilityValues.put(pieceType.KNIGHT, 0.001); // Knights jump over other pieces anyway
-        mobilityValues.put(pieceType.BISHOP, 0.01); // Bishop mobility is important
-        mobilityValues.put(pieceType.ROOK, 0.01); 
-        mobilityValues.put(pieceType.QUEEN, 0.01); 
-        mobilityValues.put(pieceType.KING, 0.0); 
+        mobilityValues.put(pieceType.PAWN, 10);
+        mobilityValues.put(pieceType.KNIGHT, 50);
+        mobilityValues.put(pieceType.BISHOP, 50);
+        mobilityValues.put(pieceType.ROOK, 50);
+        mobilityValues.put(pieceType.QUEEN, 50);
+        mobilityValues.put(pieceType.KING, 0);
     }
 
     // PSTs below
-    private static double[][] PSTPawn = {
-            // Encourage pawns to push & control centre
-            { 0, 0, 0, 0, 0, 0, 0, 0 }, // Promotion rank
-            { 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 },
-            { 0.1, 0.1, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1 },
-            { 0.05, 0.05, 0.1, 0.25, 0.25, 0.1, 0.05, 0.05 },
-            { 0, 0, 0, 0.1, 0.1, 0, 0, 0 },
-            { 0.05, 0.05, 0.1, 0, 0, 0.1, 0.05, 0.05 }, // Encourage middle two to advance and others to support
-            { 0, 0, 0, -0.5, -0.5, 0, 0, 0 }, // Discourage idle centre
+    private static int[][] PSTPawn = {
+            { 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 50, 50, 50, 50, 50, 50, 50, 50 },
+            { 10, 10, 20, 30, 30, 20, 10, 10 },
+            { 5, 5, 10, 25, 25, 10, 5, 5 },
+            { 0, 0, 0, 15, 15, 0, 0, 0 },
+            { 5, 5, 10, -10, -10, 10, 5, 5 },
+            { 0, 0, 0, -30, -30, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 }
     };
 
-    private static double[][] PSTKnight = {
-            // Encourage center control, knight on rim is dim
-            { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 },
-            { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0.05, 0.15, 0.3, 0.3, 0.15, 0.05, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
-            { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 }
+    private static int[][] PSTKnight = {
+            { -50, -40, -30, -30, -30, -30, -40, -50 },
+            { -40, -20, 0, 0, 0, 0, -20, -40 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -30, 5, 15, 30, 30, 15, 5, -30 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -40, -20, 0, 0, 0, 0, -20, -40 },
+            { -50, -40, -30, -30, -30, -30, -40, -50 }
     };
 
-    private static double[][] PSTBishop = {
-            // Less penalty than knight but still prioritise more square control
-            { -0.2, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.2 },
-            { -0.1, 0, 0, 0, 0, 0, 0, -0.1 },
-            { -0.1, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.1 },
-            { -0.1, 0.05, 0.05, 0.1, 0.1, 0.05, 0.05, -0.1 },
-            { -0.1, 0.05, 0.05, 0.1, 0.1, 0.05, 0.05, -0.1 },
-            { -0.1, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.1 },
-            { -0.1, 0, 0, 0, 0, 0, 0, -0.1 },
-            { -0.2, -0.1, -0.5, -0.1, -0.1, -0.5, -0.1, -0.2 } // Discourage laying eggs
+    private static int[][] PSTBishop = {
+            { -20, -10, -10, -10, -10, -10, -10, -20 },
+            { -10, 0, 0, 0, 0, 0, 0, -10 },
+            { -10, 0, 5, 10, 10, 5, 0, -10 },
+            { -10, 5, 5, 10, 10, 5, 5, -10 },
+            { -10, 5, 5, 10, 10, 5, 5, -10 },
+            { -10, 0, 5, 10, 10, 5, 0, -10 },
+            { -10, 0, 0, 0, 0, 0, 0, -10 },
+            { -20, -10, -50, -10, -10, -50, -10, -20 }
     };
 
-    private static double[][] PSTRook = {
-            { 0, 0, 0, 0, 0, 0, 0, 0 }, // Rank 8
-            { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 }, // 7th rank rook bonus
+    private static int[][] PSTRook = {
+            { 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 20, 20, 20, 20, 20, 20, 20, 20 },
             { 0, 0, 0, 0, 0, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 },
-            { -0.1, 0, 0, 0.1, 0.1, 0, 0, -0.1 }, // Rank 1
+            { -10, 0, 0, 10, 10, 0, 0, -10 },
     };
 
-    private static double[][] PSTQueen = {
-            { -0.1, -0.05, -0.05, 0, 0, -0.05, -0.05, -0.1 },
-            { -0.05, 0, 0, 0.05, 0.05, 0, 0, -0.05 },
-            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
-            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
-            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
-            { -0.05, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.05 },
-            { -0.05, 0, 0, 0.05, 0.05, 0, 0, -0.05 },
-            { -0.1, -0.05, -0.05, -0.1, 0, -0.05, -0.05, -0.1 }
+    private static int[][] PSTQueen = {
+            { -10, -5, -5, 0, 0, -5, -5, -10 },
+            { -5, 0, 0, 5, 5, 0, 0, -5 },
+            { -5, 0, 10, 10, 10, 10, 0, -5 },
+            { -5, 0, 10, 10, 10, 10, 0, -5 },
+            { -5, 0, 10, 10, 10, 10, 0, -5 },
+            { -5, 0, 10, 10, 10, 10, 0, -5 },
+            { -5, 0, 0, 5, 5, 0, 0, -5 },
+            { -10, -5, -5, -10, 0, -5, -5, -10 }
     };
 
-    public static double[][] PSTKingEarly = {
-            { -0.5, -0.6, -0.6, -0.7, -0.7, -0.6, -0.6, -0.5 },
-            { -0.5, -0.6, -0.6, -0.7, -0.7, -0.6, -0.6, -0.5 },
-            { -0.5, -0.6, -0.6, -0.7, -0.7, -0.6, -0.6, -0.5 },
-            { -0.5, -0.6, -0.6, -0.7, -0.7, -0.6, -0.6, -0.5 },
-            { -0.4, -0.5, -0.5, -0.6, -0.6, -0.5, -0.5, -0.4 },
-            { -0.4, -0.5, -0.5, -0.6, -0.6, -0.5, -0.5, -0.4 },
-            { 0.2, 0.2, 0, 0, 0, 0, 0.2, 0.2 },
-            { 0.2, 0.3, 0.1, 0, -0.2, 0.1, 0.3, 0.2 } // Encourage castling and hiding on the wing
+    public static int[][] PSTKingEarly = {
+            { -50, -60, -60, -70, -70, -60, -60, -50 },
+            { -50, -60, -60, -70, -70, -60, -60, -50 },
+            { -50, -60, -60, -70, -70, -60, -60, -50 },
+            { -50, -60, -60, -70, -70, -60, -60, -50 },
+            { -40, -50, -50, -60, -60, -50, -50, -40 },
+            { -40, -50, -50, -60, -60, -50, -50, -40 },
+            { 20, 20, 0, 0, 0, 0, 20, 20 },
+            { 20, 30, 20, 0, -20, -20, 30, 20 }
     };
 
-    public static double[][] PSTKingEnd = {
-            { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 },
-            { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0.05, 0.15, 0.3, 0.3, 0.15, 0.05, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.3, 0, 0.1, 0.2, 0.2, 0.1, 0, -0.3 },
-            { -0.4, -0.2, 0, 0, 0, 0, -0.2, -0.4 },
-            { -0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5 }
+    public static int[][] PSTKingEnd = {
+            { -50, -40, -30, -30, -30, -30, -40, -50 },
+            { -40, -20, 0, 0, 0, 0, -20, -40 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -30, 5, 15, 30, 30, 15, 5, -30 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -30, 0, 10, 20, 20, 10, 0, -30 },
+            { -40, -20, 0, 0, 0, 0, -20, -40 },
+            { -50, -40, -30, -30, -30, -30, -40, -50 }
     };
 
-    private static Map<pieceType, double[][]> pstValues = new EnumMap<>(pieceType.class);
+    private static Map<pieceType, int[][]> pstValues = new EnumMap<>(pieceType.class);
     static {
         pstValues.put(pieceType.PAWN, PSTPawn);
         pstValues.put(pieceType.KNIGHT, PSTKnight);
@@ -134,101 +122,235 @@ public class Eval {
     public Eval() {
     }
 
-    public double evalAll(Board board, boolean isWhiteTurn) {
-        double totalScore = 0;
-        totalScore += evalMaterial(board);
-        totalScore += evalPST(board);
-        totalScore += evalTropism(board);
-        totalScore += evalMobility(board);
+    // returns evaluation in original scale (integer centipawns)
+    public int evalAll(Board board, boolean isWhiteTurn) {
+        // cache commonly requested lists/positions to avoid repeated lookups
+        List<Piece> whitePieces = board.getPieceList(pieceColour.WHITE);
+        List<Piece> blackPieces = board.getPieceList(pieceColour.BLACK);
+        List<Move> whiteMoves = board.getLegalMoves(pieceColour.WHITE);
+        List<Move> blackMoves = board.getLegalMoves(pieceColour.BLACK);
+        Coordinates whiteKing = board.findKing(pieceColour.WHITE);
+        Coordinates blackKing = board.findKing(pieceColour.BLACK);
+
+        int totalScore = 0;
+        totalScore += evalMaterial(whitePieces, blackPieces);
+        totalScore += evalPST(whitePieces, blackPieces);
+        totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
+        totalScore += evalMobility(whiteMoves, blackMoves);
+        //totalScore += evalSpecialBonuses(whitePieces, blackPieces);
 
         return totalScore;
     }
 
-    private double evalMaterial(Board board) {
-        double materialScore = 0;
-        // Material
-        for (Piece p : board.getPieceList(pieceColour.WHITE)) {
-            materialScore += materialValues.get(p.getType());
+    private int evalMaterial(List<Piece> whitePieces, List<Piece> blackPieces) {
+        int materialScore = 0;
+        // use local reference to map to avoid repeated static lookups
+        Map<pieceType, Integer> mat = materialValues;
+        for (Piece p : whitePieces) {
+            materialScore += mat.get(p.getType());
         }
-        for (Piece p : board.getPieceList(pieceColour.BLACK)) {
-            materialScore -= materialValues.get(p.getType());
+        for (Piece p : blackPieces) {
+            materialScore -= mat.get(p.getType());
         }
-
         return materialScore;
     }
 
-    private double evalPST(Board board) {
-        double pstScore = 0;
-        double phase = getGamePhase(board); // 1 is opening, 0 is endgame
+    private int evalPST(List<Piece> whitePieces, List<Piece> blackPieces) {
+        int pstScore = 0;
+        double phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
 
-        for (pieceColour color : pieceColour.values()) {
-            double colorMultiplier = (color == pieceColour.WHITE) ? 1.0 : -1.0;
-
-            for (Piece p : board.getPieceList(color)) {
-                int row = p.getCoordinates().getRow();
-                int col = p.getCoordinates().getCol();
-                if (color == pieceColour.BLACK)
-                    row = 7 - row;
-                if (p.getType() == pieceType.KING) {
-                    // Blend Early and End tables
-                    double kingEarly = PSTKingEarly[row][col];
-                    double kingEnd = PSTKingEnd[row][col];
-                    pstScore += (phase * kingEarly + (1 - phase) * kingEnd) * colorMultiplier;
-                } else {
-                    pstScore += pstValues.get(p.getType())[row][col] * colorMultiplier;
-                }
+        // white pieces
+        for (Piece p : whitePieces) {
+            int row = p.getCoordinates().getRow();
+            int col = p.getCoordinates().getCol();
+            if (p.getType() == pieceType.KING) {
+                int kingEarly = PSTKingEarly[row][col];
+                int kingEnd = PSTKingEnd[row][col];
+                double blended = phase * kingEarly + (1.0 - phase) * kingEnd;
+                pstScore += (int) Math.round(blended);
+            } else {
+                pstScore += pstForPiece(p.getType(), row, col);
+            }
+        }
+        // black pieces (mirror rows)
+        for (Piece p : blackPieces) {
+            int row = 7 - p.getCoordinates().getRow();
+            int col = p.getCoordinates().getCol();
+            if (p.getType() == pieceType.KING) {
+                int kingEarly = PSTKingEarly[row][col];
+                int kingEnd = PSTKingEnd[row][col];
+                double blended = phase * kingEarly + (1.0 - phase) * kingEnd;
+                pstScore -= (int) Math.round(blended);
+            } else {
+                pstScore -= pstForPiece(p.getType(), row, col);
             }
         }
         return pstScore;
     }
 
-    private double evalMobility(Board board) {
-        double mobilityScore = 0;
-        for(Move m : board.getLegalMoves(pieceColour.WHITE)){
-            mobilityScore += mobilityValues.get(m.piece.getType());
+    // helper to avoid map lookups for PSTs - faster switch dispatch
+    private int pstForPiece(pieceType t, int row, int col) {
+        switch (t) {
+            case PAWN:
+                return PSTPawn[row][col];
+            case KNIGHT:
+                return PSTKnight[row][col];
+            case BISHOP:
+                return PSTBishop[row][col];
+            case ROOK:
+                return PSTRook[row][col];
+            case QUEEN:
+                return PSTQueen[row][col];
+            default:
+                return 0;
         }
-        for(Move m : board.getLegalMoves(pieceColour.BLACK)){
-            mobilityScore -= mobilityValues.get(m.piece.getType());
+    }
+
+    private int evalMobility(List<Move> whiteMoves, List<Move> blackMoves) {
+        int mobilityScore = 0;
+        for (Move m : whiteMoves) {
+            mobilityScore += mobilityForPiece(m.piece.getType());
+        }
+        for (Move m : blackMoves) {
+            mobilityScore -= mobilityForPiece(m.piece.getType());
         }
         return mobilityScore;
     }
 
-    // Determine game stage from material score 
+    // small switch to avoid map lookup overhead in hot loops
+    private int mobilityForPiece(pieceType t) {
+        switch (t) {
+            case PAWN:
+                return 1;
+            case KNIGHT:
+                return 6;
+            case BISHOP:
+                return 5;
+            case ROOK:
+                return 5;
+            case QUEEN:
+                return 5;
+            default:
+                return 0;
+        }
+    }
+
+    // Determine game stage from material score
     // 1 is opening, 0 is endgame
-    private double getGamePhase(Board board) {
-        int totalPhase = 24; // Non pawn material
+    private double getGamePhase(List<Piece> whitePieces, List<Piece> blackPieces) {
+        final int totalPhase = 24; // Non pawn material
         int currentPhase = 0;
-        for (pieceColour color : pieceColour.values()) {
-            for (Piece p : board.getPieceList(color)) {
-                if (p.getType() == pieceType.QUEEN) {
-                    currentPhase += 4;
-                } else if (p.getType() == pieceType.ROOK) {
-                    currentPhase += 2;
-                } else if (p.getType() == pieceType.BISHOP || p.getType() == pieceType.KNIGHT) {
-                    currentPhase += 1;
-                }
-            }
+        for (Piece p : whitePieces) {
+            currentPhase += phaseWeight(p.getType());
+        }
+        for (Piece p : blackPieces) {
+            currentPhase += phaseWeight(p.getType());
         }
         return (double) currentPhase / totalPhase;
     }
 
-    private double evalTropism(Board board) {
-        double tropScore = 0;
-        Coordinates whiteKing = board.findKing(pieceColour.WHITE);
-        Coordinates blackKing = board.findKing(pieceColour.BLACK);
+    private int phaseWeight(pieceType t) {
+        switch (t) {
+            case QUEEN:
+                return 4;
+            case ROOK:
+                return 2;
+            case BISHOP:
+            case KNIGHT:
+                return 1;
+            default:
+                return 0;
+        }
+    }
 
-        for (Piece p : board.getPieceList(pieceColour.WHITE)) {
+    private int evalTropism(List<Piece> whitePieces, List<Piece> blackPieces, Coordinates whiteKing,
+            Coordinates blackKing) {
+        int tropScore = 0;
+        for (Piece p : whitePieces) {
             tropScore += tropismBonus(p, blackKing);
         }
-        for (Piece p : board.getPieceList(pieceColour.BLACK)) {
+        for (Piece p : blackPieces) {
             tropScore -= tropismBonus(p, whiteKing);
         }
         return tropScore;
     }
 
-    private double tropismBonus(Piece p, Coordinates kingPos) {
+    private int tropismBonus(Piece p, Coordinates kingPos) {
         int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol())
                 + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
-        return 0.05 * (7 - dist); // Empirical, adjust as necessary
+        return 5 * (7 - dist);
+    }
+
+    private int evalSpecialBonuses(List<Piece> whitePieces, List<Piece> blackPieces) {
+        int bonus = 0;
+        int bishopCountWhite = 0;
+        int bishopCountBlack = 0;
+        int rookCountWhite = 0;
+        int rookCountBlack = 0;
+        int knightCountWhite = 0;
+        int knightCountBlack = 0;
+
+        for (Piece p : whitePieces) {
+            switch (p.getType()) {
+                case PAWN:
+                    break;
+                case KNIGHT:
+                    knightCountWhite++;
+                    break;
+                case BISHOP:
+                    bishopCountWhite++;
+                    break;
+                case ROOK:
+                    rookCountWhite++;
+                    break;
+                case QUEEN:
+                    break;
+                case KING:
+                    break;
+                default:
+                    break;
+            }
+        }
+        for (Piece p : blackPieces) {
+            switch (p.getType()) {
+                case PAWN:
+                    break;
+                case KNIGHT:
+                    knightCountBlack++;
+                    break;
+                case BISHOP:
+                    bishopCountBlack++;
+                    break;
+                case ROOK:
+                    rookCountBlack++;
+                    break;
+                case QUEEN:
+                    break;
+                case KING:
+                    break;
+                default:
+                    break;
+            }
+
+            if(knightCountWhite == 2){
+                bonus -= 20; 
+            }
+            if(knightCountBlack == 2){
+                bonus += 20;
+            }
+            if(bishopCountWhite == 2){
+                bonus += 30;
+            }
+            if(bishopCountBlack == 2){
+                bonus -= 30;
+            }
+            if(rookCountWhite == 2){
+                bonus += 10;
+            }
+            if(rookCountBlack == 2){
+                bonus -= 10;
+            }
+        }
+        return bonus;
     }
 }

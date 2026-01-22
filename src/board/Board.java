@@ -9,6 +9,7 @@ import pieces.Bishop;
 import pieces.King;
 import pieces.Knight;
 import pieces.Pawn;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -162,7 +163,7 @@ public class Board {
 
             int step = (endCol > startCol) ? 1 : -1;
             for (int c = startCol + step; c != rookCol; c += step) {
-                if (grid[row][c] != null){
+                if (grid[row][c] != null) {
                     System.out.println("Castling middle square blocked");
                     return false; // Square is blocked
                 }
@@ -231,7 +232,7 @@ public class Board {
 
         grid[originalCoords.getRow()][originalCoords.getCol()] = null;
         grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
-        if(capturedPiece != null){
+        if (capturedPiece != null) {
             removePieceFromSystem(capturedPiece);
         }
         move.piece.setCoordinates(move.getMoveTo());
@@ -243,13 +244,16 @@ public class Board {
         grid[originalCoords.getRow()][originalCoords.getCol()] = move.piece;
         grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
         move.piece.setCoordinates(originalCoords);
-        addPieceToSystem(capturedPiece);
+        if(capturedPiece != null){
+            addPieceToSystem(capturedPiece);
+        }
         return safe;
     }
 
     /**
      * Takes as parameters the coordinates of the square and the colour of
      * ALLIED pieces. Internally computes arraylist of enemy pieces.
+     * 
      * @param coords
      * @param colour
      * @return
@@ -271,7 +275,7 @@ public class Board {
         return false;
     }
 
-    public Coordinates findKing(pieceColour colour) throws RuntimeException{
+    public Coordinates findKing(pieceColour colour) throws RuntimeException {
         ArrayList<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
 
         for (Piece p : pieceList) {
@@ -290,39 +294,84 @@ public class Board {
         throw new RuntimeErrorException(null);
     }
 
-    public void printBoard() {
-    String top    = "  ╔═══╤═══╤═══╤═══╤═══╤═══╤═══╤═══╗";
-    String middle = "  ╟───┼───┼───┼───┼───┼───┼───┼───╢";
-    String bottom = "  ╚═══╧═══╧═══╧═══╧═══╧═══╧═══╧═══╝";
-    String labels = "    a   b   c   d   e   f   g   h";
+    public void printBoard(pieceColour side) {
 
-    System.out.println(top);
-    for (int r = 0; r < 8; r++) {
-        System.out.print((8 - r) + " ║"); // Rank number
-        for (int c = 0; c < 8; c++) {
-            Piece p = grid[r][c];
-            String symbol = (p == null) ? " " : getUnicodeSymbol(p);
-            System.out.print(" " + symbol + " │");
+        String top = "  ╔═══╤═══╤═══╤═══╤═══╤═══╤═══╤═══╗";
+        String middle = "  ╟───┼───┼───┼───┼───┼───┼───┼───╢";
+        String bottom = "  ╚═══╧═══╧═══╧═══╧═══╧═══╧═══╧═══╝";
+        String labels = "    a   b   c   d   e   f   g   h";
+
+        if (side == pieceColour.WHITE) {
+            System.out.println(top);
+            for (int r = 0; r < 8; r++) {
+                System.out.print((8 - r) + " ║"); // Rank number
+                for (int c = 0; c < 8; c++) {
+                    Piece p = grid[r][c];
+                    String symbol = (p == null) ? " " : getUnicodeSymbol(p);
+                    System.out.print(" " + symbol + " │");
+                }
+                // Replace last │ with ║
+                System.out.print("\b║\n");
+                if (r < 7) {
+                    System.out.println(middle);
+                }
+            }
+        } else {
+            System.out.println(top);
+            // Invert boardstate
+            for (int r = 0; r < 8; r++) {
+                System.out.print((1 + r) + " ║");
+                for (int c = 0; c < 8; c++) {
+                    Piece p = grid[7 - r][c];
+                    String symbol = (p == null) ? " " : getUnicodeSymbol(p);
+                    System.out.print(" " + symbol + " │");
+                }
+                System.out.print("\b║\n");
+                if (r < 7) {
+                    System.out.println(middle);
+                }
+            }
         }
-        // Replace last │ with ║
-        System.out.print("\b║\n"); 
-        if (r < 7) System.out.println(middle);
+        System.out.println(bottom);
+        System.out.println(labels);
     }
-    System.out.println(bottom);
-    System.out.println(labels);
-}
 
-private String getUnicodeSymbol(Piece p) {
-    switch (p.getType()) {
-        case PAWN:   return p.getColour() == pieceColour.WHITE ? "\u2659" : "\u265f";
-        case ROOK:   return p.getColour() == pieceColour.WHITE ? "\u2656" : "\u265c";
-        case KNIGHT: return p.getColour() == pieceColour.WHITE ? "\u2658" : "\u265e";
-        case BISHOP: return p.getColour() == pieceColour.WHITE ? "\u2657" : "\u265d";
-        case QUEEN:  return p.getColour() == pieceColour.WHITE ? "\u2655" : "\u265b";
-        case KING:   return p.getColour() == pieceColour.WHITE ? "\u2654" : "\u265a";
-        default:     return " ";
+    /**
+     * Not actually unicode
+     * 
+     * @param p
+     * @return
+     */
+    private String getUnicodeSymbol(Piece p) {
+        String type = "";
+        switch (p.getType()) {
+            case PAWN:
+                type = "P";
+                break;
+            case ROOK:
+                type = "R";
+                break;
+            case KNIGHT:
+                type = "N";
+                break;
+            case BISHOP:
+                type = "B";
+                break;
+            case QUEEN:
+                type = "Q";
+                break;
+            case KING:
+                type = "K";
+                break;
+        }
+
+        // White = Cyan, Black = Red (Better contrast than White/Black)
+        if (p.getColour() == pieceColour.WHITE) {
+            return "\u001b[36;1m" + type + "\u001b[0m";
+        } else {
+            return "\u001b[31;1m" + type + "\u001b[0m";
+        }
     }
-}
 
     public void promote(Coordinates coords, Piece toPiece) {
         Piece oldPawn = getPiece(coords);
@@ -405,6 +454,7 @@ private String getUnicodeSymbol(Piece p) {
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
+        //TODO: Optimise by checking only valid squares using some sort
         List<Move> legalMoves = new ArrayList<>();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
