@@ -108,7 +108,6 @@ public class Game {
             Coordinates initCoords = new Coordinates(startRank, startFile);
             Coordinates finalCoords = new Coordinates(endRank, endFile);
             Piece p = board.getPiece(initCoords);
-            // Temp unmodular fix for player side
             boolean playerSide = true;
             if (side == pieceColour.BLACK) {
                 playerSide = false;
@@ -121,6 +120,9 @@ public class Game {
             if (board.isMoveLegal(move)) {
                 board.doMove(move);
                 if (move.piece.getType() == pieceType.PAWN) {
+                    if(((Pawn) move.piece).getJustMovedTwo() == true){
+                        ((Pawn) move.piece).setCanMoveTwo(false);
+                    }
                     int rank = move.getMoveTo().getRank();
                     if (rank == 1 || rank == 8) {
                         handlePromotion(move.getMoveTo(), move.piece.getColour());
@@ -185,6 +187,7 @@ public class Game {
 
         if (board.isMoveLegal(move)) {
             board.doMove(move);
+            board.syncPieceLists();
             isWhiteTurn = !isWhiteTurn;
         } else {
             System.out.println("Castling is illegal!");
@@ -203,10 +206,10 @@ public class Game {
                 if (r == 1 || r == 8) {
                     board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(), bestMove.getMoveTo()));
                 }
-            } else {    
-                System.out.println("Chessbot has no legal moves. ");
             }
             isWhiteTurn = !isWhiteTurn;
+        } else {
+            System.out.println("Chessbot has no legal moves. ");
         }
     }
 }

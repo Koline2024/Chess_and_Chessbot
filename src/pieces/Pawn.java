@@ -1,10 +1,8 @@
 package pieces;
 
-import java.util.ArrayList;
 
 import board.Board;
 import board.Coordinates;
-import board.Move;
 import enums.pieceColour;
 import enums.pieceType;
 
@@ -13,6 +11,7 @@ import enums.pieceType;
 public class Pawn extends Piece {
 
     private boolean canMoveTwo = true;
+    private boolean justMovedTwo = false;
 
     public Pawn(pieceColour colour, Coordinates coordinates) {
         super(pieceType.PAWN, colour, coordinates);
@@ -46,7 +45,7 @@ public class Pawn extends Piece {
         }
 
         // Two-square initial move
-        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && !hasMoved) {
+        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && !hasMoved && canMoveTwo) {
             Coordinates between = new Coordinates(coordinates.getRank() + moveDir, coordinates.getFile());
             if (board.getPiece(between) == null) {
                 return true;
@@ -89,6 +88,14 @@ public class Pawn extends Piece {
 
     public void setCanMoveTwo(boolean x){
         canMoveTwo = x;
+    }
+
+    public boolean getJustMovedTwo(){
+        return justMovedTwo;
+    }
+
+    public void setJustMovedTwo(boolean x){
+        justMovedTwo = x;
     }
 
 }

@@ -25,7 +25,7 @@ public class Board {
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        initialise();
+        initialise("");
         syncPieceLists();
     }
 
@@ -67,9 +67,17 @@ public class Board {
     public void doMove(Move move) {
         // Update history
         move.setWasFirstMove(!move.piece.hasMoved());
+        
         if (move.piece.getType() == pieceType.PAWN) {
-            move.setWasFirstMove(((Pawn) move.piece).getCanMoveTwo());
+            Pawn p = (Pawn) move.piece; 
+            move.setWasFirstMove(p.getCanMoveTwo());
+            if(Math.abs(move.getMoveTo().getRow() - move.getMoveFrom().getRow()) == 2){
+                p.setJustMovedTwo(true);
+            }else{
+                p.setJustMovedTwo(false);
+            }
         }
+
         move.setCapturedPiece(getPiece(move.getMoveTo()));
         if (move.getCapturePiece() != null) {
             removePieceFromSystem(move.getCapturePiece());
@@ -189,64 +197,89 @@ public class Board {
         return true;
     }
 
-    private void initialise() {
+public void initialise(String fen) {
 
-        // --- WHITE PIECES ---
-        // Rooks, Knights, Bishops, Queen, King (Rank 1)
-        setPiece(new Coordinates(1, 'a'), new Rook(pieceColour.WHITE, new Coordinates(1, 'a')));
-        setPiece(new Coordinates(1, 'b'), new Knight(pieceColour.WHITE, new Coordinates(1, 'b')));
-        setPiece(new Coordinates(1, 'c'), new Bishop(pieceColour.WHITE, new Coordinates(1, 'c')));
-        setPiece(new Coordinates(1, 'd'), new Queen(pieceColour.WHITE, new Coordinates(1, 'd')));
-        setPiece(new Coordinates(1, 'e'), new King(pieceColour.WHITE, new Coordinates(1, 'e')));
-        setPiece(new Coordinates(1, 'f'), new Bishop(pieceColour.WHITE, new Coordinates(1, 'f')));
-        setPiece(new Coordinates(1, 'g'), new Knight(pieceColour.WHITE, new Coordinates(1, 'g')));
-        setPiece(new Coordinates(1, 'h'), new Rook(pieceColour.WHITE, new Coordinates(1, 'h')));
-
-        // White Pawns (Rank 2)
-        char[] files = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
-        for (char file : files) {
-            setPiece(new Coordinates(2, file), new Pawn(pieceColour.WHITE, new Coordinates(2, file)));
-        }
-
-        // --- BLACK PIECES ---
-        // Black Pawns (Rank 7)
-        for (char file : files) {
-            setPiece(new Coordinates(7, file), new Pawn(pieceColour.BLACK, new Coordinates(7, file)));
-        }
-
-        // Rooks, Knights, Bishops, Queen, King (Rank 8)
-        setPiece(new Coordinates(8, 'a'), new Rook(pieceColour.BLACK, new Coordinates(8, 'a')));
-        setPiece(new Coordinates(8, 'b'), new Knight(pieceColour.BLACK, new Coordinates(8, 'b')));
-        setPiece(new Coordinates(8, 'c'), new Bishop(pieceColour.BLACK, new Coordinates(8, 'c')));
-        setPiece(new Coordinates(8, 'd'), new Queen(pieceColour.BLACK, new Coordinates(8, 'd')));
-        setPiece(new Coordinates(8, 'e'), new King(pieceColour.BLACK, new Coordinates(8, 'e')));
-        setPiece(new Coordinates(8, 'f'), new Bishop(pieceColour.BLACK, new Coordinates(8, 'f')));
-        setPiece(new Coordinates(8, 'g'), new Knight(pieceColour.BLACK, new Coordinates(8, 'g')));
-        setPiece(new Coordinates(8, 'h'), new Rook(pieceColour.BLACK, new Coordinates(8, 'h')));
+    // Default starting position if FEN is empty
+    if (fen == null || fen.isEmpty()) {
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     }
 
+    String[] parts = fen.split(" ");
+    String boardPart = parts[0]; // The piece placement section
+
+    String[] ranks = boardPart.split("/");
+    int currentRank = 8; // FEN starts at Rank 8
+
+    for (String rankContent : ranks) {
+        int fileIndex = 0; // 0 = 'a', 1 = 'b', etc.
+
+        for (int i = 0; i < rankContent.length(); i++) {
+            char c = rankContent.charAt(i);
+
+            if (Character.isDigit(c)) {
+                // If it's a number, skip those squares
+                fileIndex += Character.getNumericValue(c);
+            } else {
+                // If it's a letter, it's a piece
+                char file = (char) ('a' + fileIndex);
+                Coordinates coords = new Coordinates(currentRank, file);
+                
+                pieceColour color = Character.isUpperCase(c) ? pieceColour.WHITE : pieceColour.BLACK;
+                Piece piece = createPieceFromChar(c, color, coords);
+                
+                setPiece(coords, piece);
+                fileIndex++;
+            }
+        }
+        currentRank--;
+    }
+
+    // Update Game State (Whose turn is it?)
+    if (parts.length > 1) {
+        //this.isWhiteTurn = parts[1].equals("w");
+    }
+}
+
+// Helper to clean up the logic
+private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords) {
+    char type = Character.toLowerCase(c);
+    return switch (type) {
+        case 'p' -> new Pawn(color, coords);
+        case 'n' -> new Knight(color, coords);
+        case 'b' -> new Bishop(color, coords);
+        case 'r' -> new Rook(color, coords);
+        case 'q' -> new Queen(color, coords);
+        case 'k' -> new King(color, coords);
+        default -> throw new IllegalArgumentException("Unknown FEN piece: " + c);
+    };
+}
     private boolean isMoveSafe(Move move) {
         // In the case of a capture
-        Piece capturedPiece = getPiece(move.getMoveTo());
-        Coordinates originalCoords = move.getMoveFrom();
 
-        grid[originalCoords.getRow()][originalCoords.getCol()] = null;
-        grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
-        if (capturedPiece != null) {
-            removePieceFromSystem(capturedPiece);
-        }
-        move.piece.setCoordinates(move.getMoveTo());
+        // Try using domove and undomove instead of this code
+        // Piece capturedPiece = getPiece(move.getMoveTo());
+        // Coordinates originalCoords = move.getMoveFrom();
+
+        // grid[originalCoords.getRow()][originalCoords.getCol()] = null;
+        // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
+        // if (capturedPiece != null) {
+        //     removePieceFromSystem(capturedPiece);
+        // }
+        // move.piece.setCoordinates(move.getMoveTo());
+
+        doMove(move);
         // Find where the king is
         Coordinates kingPos = findKing(move.piece.getColour());
         boolean safe = !isSquareAttacked(kingPos, move.piece.getColour());
 
         // Undo simulated move
-        grid[originalCoords.getRow()][originalCoords.getCol()] = move.piece;
-        grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
-        move.piece.setCoordinates(originalCoords);
-        if(capturedPiece != null){
-            addPieceToSystem(capturedPiece);
-        }
+        // grid[originalCoords.getRow()][originalCoords.getCol()] = move.piece;
+        // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
+        // move.piece.setCoordinates(originalCoords);
+        // if(capturedPiece != null){
+        //     addPieceToSystem(capturedPiece);
+        // }
+        undoMove();
         return safe;
     }
 
@@ -419,6 +452,11 @@ public class Board {
             setPiece(new Coordinates(last.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
             rook.setMoved(false);
         }
+
+        // if(last.piece.getType() == pieceType.PAWN){
+        //     ((Pawn) last.piece).setCanMoveTwo(true);
+        // }
+
     }
 
     public List<Piece> getPieceList(pieceColour colour) {

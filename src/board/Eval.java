@@ -9,6 +9,7 @@ import java.util.List;
 
 public class Eval {
 
+    public double phase;
     // Map of piece types to material value
     private static Map<pieceType, Integer> materialValues = new EnumMap<>(pieceType.class);
     static {
@@ -137,7 +138,7 @@ public class Eval {
         totalScore += evalPST(whitePieces, blackPieces);
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
         totalScore += evalMobility(whiteMoves, blackMoves);
-        //totalScore += evalSpecialBonuses(whitePieces, blackPieces);
+        totalScore += evalSpecialBonuses(whitePieces, blackPieces);
 
         return totalScore;
     }
@@ -157,7 +158,7 @@ public class Eval {
 
     private int evalPST(List<Piece> whitePieces, List<Piece> blackPieces) {
         int pstScore = 0;
-        double phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
+        phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
 
         // white pieces
         for (Piece p : whitePieces) {
@@ -331,25 +332,24 @@ public class Eval {
                 default:
                     break;
             }
-
-            if(knightCountWhite == 2){
-                bonus -= 20; 
-            }
-            if(knightCountBlack == 2){
-                bonus += 20;
-            }
-            if(bishopCountWhite == 2){
-                bonus += 30;
-            }
-            if(bishopCountBlack == 2){
-                bonus -= 30;
-            }
-            if(rookCountWhite == 2){
-                bonus += 10;
-            }
-            if(rookCountBlack == 2){
-                bonus -= 10;
-            }
+        }
+        if (knightCountWhite == 2) {
+            bonus -= 0;
+        }
+        if (knightCountBlack == 2) {
+            bonus += 0;
+        }
+        if (bishopCountWhite == 2) {
+            bonus += (1 - phase) * 30;
+        }
+        if (bishopCountBlack == 2) {
+            bonus -= (1 - phase) * 30;
+        }
+        if (rookCountWhite == 2) {
+            bonus += 10;
+        }
+        if (rookCountBlack == 2) {
+            bonus -= 10;
         }
         return bonus;
     }
