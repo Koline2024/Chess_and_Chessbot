@@ -17,6 +17,9 @@ public class Move {
     private boolean isPromotion;
     private boolean wasFirstMove;
 
+    // Memory
+    private boolean pieceWasMovedBefore;
+
     public Move(Piece piece, Coordinates from, Coordinates to){
         this.piece = piece;
         this.from = from;
@@ -62,6 +65,11 @@ public class Move {
     public void setWasFirstMove(boolean x){
         wasFirstMove = x;
     }
+
+    public void setPieceWasMovedBefore(boolean val) { this.pieceWasMovedBefore = val; }
+    
+    public boolean getPieceWasMovedBefore() { return pieceWasMovedBefore; }
+
 
     @Override
     public String toString(){

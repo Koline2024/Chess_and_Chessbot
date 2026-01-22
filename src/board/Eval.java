@@ -139,7 +139,7 @@ public class Eval {
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
         totalScore += evalMobility(whiteMoves, blackMoves);
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
-
+        
         return totalScore;
     }
 

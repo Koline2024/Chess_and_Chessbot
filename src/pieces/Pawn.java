@@ -45,7 +45,7 @@ public class Pawn extends Piece {
         }
 
         // Two-square initial move
-        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && !hasMoved && canMoveTwo) {
+        if (dUpDown == 2 * moveDir && board.getPiece(target) == null && dLeftRight == 0 && !this.hasMoved()) {
             Coordinates between = new Coordinates(coordinates.getRank() + moveDir, coordinates.getFile());
             if (board.getPiece(between) == null) {
                 return true;

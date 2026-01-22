@@ -65,17 +65,16 @@ public class Board {
     }
 
     public void doMove(Move move) {
+        Piece p = move.piece;
+
         // Update history
-        move.setWasFirstMove(!move.piece.hasMoved());
-        
-        if (move.piece.getType() == pieceType.PAWN) {
-            Pawn p = (Pawn) move.piece; 
-            move.setWasFirstMove(p.getCanMoveTwo());
-            if(Math.abs(move.getMoveTo().getRow() - move.getMoveFrom().getRow()) == 2){
-                p.setJustMovedTwo(true);
-            }else{
-                p.setJustMovedTwo(false);
-            }
+        move.setPieceWasMovedBefore(p.hasMoved());
+        move.setWasFirstMove(!p.hasMoved());
+
+        if (p.getType() == pieceType.PAWN) {
+            Pawn pawn = (Pawn) p;
+            boolean jumpedTwo = Math.abs(move.getMoveTo().getRow() - move.getMoveFrom().getRow()) == 2;
+            pawn.setJustMovedTwo(jumpedTwo);
         }
 
         move.setCapturedPiece(getPiece(move.getMoveTo()));
@@ -84,9 +83,9 @@ public class Board {
         }
 
         grid[move.getMoveFrom().getRow()][move.getMoveFrom().getCol()] = null;
-        setPiece(move.getMoveTo(), move.piece);
-        move.piece.setCoordinates(move.getMoveTo());
-        move.piece.setMoved(true);
+        setPiece(move.getMoveTo(), p);
+        p.setCoordinates(move.getMoveTo());
+        p.setMoved(true);
 
         // Castling rook swap
         if (move.isCastling()) {
@@ -103,17 +102,17 @@ public class Board {
         // Hard code castling hasMovedBefore booleans
         if (move.piece.getType() == pieceType.ROOK) {
             // Casting because I am bad at structuring and also lazy
-            Rook p = (Rook) move.piece;
-            if (p.hasMoved() == false) {
-                p.setMoved(true);
+            Rook rook = (Rook) p;
+            if (rook.hasMoved() == false) {
+                rook.setMoved(true);
             }
         }
 
         if (move.piece.getType() == pieceType.KING) {
             // Casting because I am bad at structuring and also lazy
-            King p = (King) move.piece;
-            if (p.hasMoved() == false) {
-                p.setMoved(true);
+            King king = (King) p;
+            if (king.hasMoved() == false) {
+                king.setMoved(true);
             }
         }
         lastMove = move;
@@ -197,62 +196,63 @@ public class Board {
         return true;
     }
 
-public void initialise(String fen) {
+    public void initialise(String fen) {
 
-    // Default starting position if FEN is empty
-    if (fen == null || fen.isEmpty()) {
-        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    }
-
-    String[] parts = fen.split(" ");
-    String boardPart = parts[0]; // The piece placement section
-
-    String[] ranks = boardPart.split("/");
-    int currentRank = 8; // FEN starts at Rank 8
-
-    for (String rankContent : ranks) {
-        int fileIndex = 0; // 0 = 'a', 1 = 'b', etc.
-
-        for (int i = 0; i < rankContent.length(); i++) {
-            char c = rankContent.charAt(i);
-
-            if (Character.isDigit(c)) {
-                // If it's a number, skip those squares
-                fileIndex += Character.getNumericValue(c);
-            } else {
-                // If it's a letter, it's a piece
-                char file = (char) ('a' + fileIndex);
-                Coordinates coords = new Coordinates(currentRank, file);
-                
-                pieceColour color = Character.isUpperCase(c) ? pieceColour.WHITE : pieceColour.BLACK;
-                Piece piece = createPieceFromChar(c, color, coords);
-                
-                setPiece(coords, piece);
-                fileIndex++;
-            }
+        // Default starting position if FEN is empty
+        if (fen == null || fen.isEmpty()) {
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         }
-        currentRank--;
+
+        String[] parts = fen.split(" ");
+        String boardPart = parts[0]; // The piece placement section
+
+        String[] ranks = boardPart.split("/");
+        int currentRank = 8; // FEN starts at Rank 8
+
+        for (String rankContent : ranks) {
+            int fileIndex = 0; // 0 = 'a', 1 = 'b', etc.
+
+            for (int i = 0; i < rankContent.length(); i++) {
+                char c = rankContent.charAt(i);
+
+                if (Character.isDigit(c)) {
+                    // If it's a number, skip those squares
+                    fileIndex += Character.getNumericValue(c);
+                } else {
+                    // If it's a letter, it's a piece
+                    char file = (char) ('a' + fileIndex);
+                    Coordinates coords = new Coordinates(currentRank, file);
+
+                    pieceColour color = Character.isUpperCase(c) ? pieceColour.WHITE : pieceColour.BLACK;
+                    Piece piece = createPieceFromChar(c, color, coords);
+
+                    setPiece(coords, piece);
+                    fileIndex++;
+                }
+            }
+            currentRank--;
+        }
+
+        // Update Game State (Whose turn is it?)
+        if (parts.length > 1) {
+            // this.isWhiteTurn = parts[1].equals("w");
+        }
     }
 
-    // Update Game State (Whose turn is it?)
-    if (parts.length > 1) {
-        //this.isWhiteTurn = parts[1].equals("w");
+    // Helper to clean up the logic
+    private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords) {
+        char type = Character.toLowerCase(c);
+        return switch (type) {
+            case 'p' -> new Pawn(color, coords);
+            case 'n' -> new Knight(color, coords);
+            case 'b' -> new Bishop(color, coords);
+            case 'r' -> new Rook(color, coords);
+            case 'q' -> new Queen(color, coords);
+            case 'k' -> new King(color, coords);
+            default -> throw new IllegalArgumentException("Unknown FEN piece: " + c);
+        };
     }
-}
 
-// Helper to clean up the logic
-private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords) {
-    char type = Character.toLowerCase(c);
-    return switch (type) {
-        case 'p' -> new Pawn(color, coords);
-        case 'n' -> new Knight(color, coords);
-        case 'b' -> new Bishop(color, coords);
-        case 'r' -> new Rook(color, coords);
-        case 'q' -> new Queen(color, coords);
-        case 'k' -> new King(color, coords);
-        default -> throw new IllegalArgumentException("Unknown FEN piece: " + c);
-    };
-}
     private boolean isMoveSafe(Move move) {
         // In the case of a capture
 
@@ -263,7 +263,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
         // grid[originalCoords.getRow()][originalCoords.getCol()] = null;
         // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
         // if (capturedPiece != null) {
-        //     removePieceFromSystem(capturedPiece);
+        // removePieceFromSystem(capturedPiece);
         // }
         // move.piece.setCoordinates(move.getMoveTo());
 
@@ -277,7 +277,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
         // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
         // move.piece.setCoordinates(originalCoords);
         // if(capturedPiece != null){
-        //     addPieceToSystem(capturedPiece);
+        // addPieceToSystem(capturedPiece);
         // }
         undoMove();
         return safe;
@@ -333,6 +333,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
         String middle = "  ╟───┼───┼───┼───┼───┼───┼───┼───╢";
         String bottom = "  ╚═══╧═══╧═══╧═══╧═══╧═══╧═══╧═══╝";
         String labels = "    a   b   c   d   e   f   g   h";
+        String labelsBlack = "    h   g   f   e   d   c   b   a";
 
         if (side == pieceColour.WHITE) {
             System.out.println(top);
@@ -349,13 +350,15 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
                     System.out.println(middle);
                 }
             }
+            System.out.println(bottom);
+            System.out.println(labels);
         } else {
             System.out.println(top);
             // Invert boardstate
             for (int r = 0; r < 8; r++) {
                 System.out.print((1 + r) + " ║");
                 for (int c = 0; c < 8; c++) {
-                    Piece p = grid[7 - r][c];
+                    Piece p = grid[7 - r][7 - c];
                     String symbol = (p == null) ? " " : getUnicodeSymbol(p);
                     System.out.print(" " + symbol + " │");
                 }
@@ -364,9 +367,9 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
                     System.out.println(middle);
                 }
             }
+            System.out.println(bottom);
+            System.out.println(labelsBlack);
         }
-        System.out.println(bottom);
-        System.out.println(labels);
     }
 
     /**
@@ -424,6 +427,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
             addPieceToSystem(last.getCapturePiece());
         }
 
+        last.piece.setMoved(last.getPieceWasMovedBefore());
         // Put the piece back
         grid[last.from.getRow()][last.from.getCol()] = last.piece;
         last.piece.setCoordinates(last.from);
@@ -454,7 +458,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
         }
 
         // if(last.piece.getType() == pieceType.PAWN){
-        //     ((Pawn) last.piece).setCanMoveTwo(true);
+        // ((Pawn) last.piece).setCanMoveTwo(true);
         // }
 
     }
@@ -492,7 +496,7 @@ private Piece createPieceFromChar(char c, pieceColour color, Coordinates coords)
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
-        //TODO: Optimise by checking only valid squares using some sort
+        // TODO: Optimise by checking only valid squares using some sort
         List<Move> legalMoves = new ArrayList<>();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
