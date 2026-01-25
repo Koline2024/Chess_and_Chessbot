@@ -10,6 +10,7 @@ import java.util.List;
 public class Eval {
 
     public double phase;
+
     // Map of piece types to material value
     private static Map<pieceType, Integer> materialValues = new EnumMap<>(pieceType.class);
     static {
@@ -34,7 +35,7 @@ public class Eval {
 
     // PSTs below
     private static int[][] PSTPawn = {
-            { 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 900, 900, 900, 900, 900, 900, 900, 900 }, // Encourage promotion
             { 50, 50, 50, 50, 50, 50, 50, 50 },
             { 10, 10, 20, 30, 30, 20, 10, 10 },
             { 5, 5, 10, 25, 25, 10, 5, 5 },
@@ -132,14 +133,17 @@ public class Eval {
         List<Move> blackMoves = board.getLegalMoves(pieceColour.BLACK);
         Coordinates whiteKing = board.findKing(pieceColour.WHITE);
         Coordinates blackKing = board.findKing(pieceColour.BLACK);
+        phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
+        int deltaMaterial = evalMaterial(whitePieces, blackPieces); // Necessary for finale
 
         int totalScore = 0;
-        totalScore += evalMaterial(whitePieces, blackPieces);
+        totalScore += deltaMaterial;
         totalScore += evalPST(whitePieces, blackPieces);
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
         totalScore += evalMobility(whiteMoves, blackMoves);
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
-        
+        totalScore += evalFinale(whiteKing, blackKing, deltaMaterial);
+
         return totalScore;
     }
 
@@ -158,8 +162,6 @@ public class Eval {
 
     private int evalPST(List<Piece> whitePieces, List<Piece> blackPieces) {
         int pstScore = 0;
-        phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
-
         // white pieces
         for (Piece p : whitePieces) {
             int row = p.getCoordinates().getRow();
@@ -352,5 +354,30 @@ public class Eval {
             bonus -= 10;
         }
         return bonus;
+    }
+
+    // If in a winning endgame use this to checkmate opponent king
+    private int evalFinale(Coordinates whiteKing, Coordinates blackKing, int deltaMaterial) {
+        int finaleScore = 0;
+        int dist = Math.abs(whiteKing.getCol() - blackKing.getCol())
+                + Math.abs(whiteKing.getRow() - blackKing.getRow());
+        int distWhiteCorner = Math.max(3 - whiteKing.getCol(), whiteKing.getCol() - 4)
+                + Math.max(3 - whiteKing.getRow(), whiteKing.getRow() - 4);
+        int distBlackCorner = Math.max(3 - blackKing.getCol(), blackKing.getCol() - 4)
+                + Math.max(3 - blackKing.getRow(), blackKing.getRow() - 4);
+        // Make sure it's end-endgame
+        if (phase > 0.2) {
+            return finaleScore;
+        }
+        // Only apply finale heuristics when one side has a decisive material advantage
+        // (>= 2 pawns)
+        if (deltaMaterial >= 200) { // White winning by >= 2 pawns
+            finaleScore += 10 * distBlackCorner;
+            finaleScore += 4 * (14 - dist);
+        } else if (deltaMaterial <= -200) { // Black winning by >= 2 pawns
+            finaleScore -= 10 * distWhiteCorner;
+            finaleScore -= 4 * (14 - dist);
+        }
+        return finaleScore;
     }
 }

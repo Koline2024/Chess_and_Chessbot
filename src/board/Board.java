@@ -18,6 +18,7 @@ import javax.management.RuntimeErrorException;
 
 public class Board {
 
+    public long zobristHash;
     private Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
@@ -506,18 +507,19 @@ public class Board {
                     // Check all squares for this piece
                     for (int tRow = 0; tRow < 8; tRow++) {
                         for (int tCol = 0; tCol < 8; tCol++) {
-                            // Skip own pieces
+                            // Skip own pieces  
                             Piece target = grid[tRow][tCol];
                             if (target != null && target.getColour() == colour) {
                                 continue;
                             }
                             Coordinates to = new Coordinates(8 - tRow, (char) ('a' + tCol));
                             Move move = new Move(p, p.getCoordinates(), to);
-
-                            // This is the expensive check:
-                            if (isMoveLegal(move)) {
-                                legalMoves.add(move);
-                            }
+                            // See if move is valid first before expensive check
+                            //if (move.piece.isValidMove(to, this)) {
+                                if (isMoveLegal(move)) { // Expensive check
+                                    legalMoves.add(move);
+                                }
+                            //} 
                         }
                     }
                 }
@@ -525,4 +527,18 @@ public class Board {
         }
         return legalMoves;
     }
+
+    /**
+     * Gets last move played on the board
+     * 
+     * @return
+     */
+    public Move getLastMove() {
+        if (history.isEmpty()) {
+            return null;
+        }
+        return history.getLast();
+    }
+
+    pu
 }

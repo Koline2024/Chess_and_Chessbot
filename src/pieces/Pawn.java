@@ -1,6 +1,5 @@
 package pieces;
 
-
 import board.Board;
 import board.Coordinates;
 import enums.pieceColour;
@@ -15,6 +14,11 @@ public class Pawn extends Piece {
 
     public Pawn(pieceColour colour, Coordinates coordinates) {
         super(pieceType.PAWN, colour, coordinates);
+        // Safety method 
+        if(coordinates.getRank() != ((colour == pieceColour.WHITE) ? 2 : 7)){
+            System.out.println("AAAA");
+            canMoveTwo = false;
+        }
     }
 
     @Override
@@ -52,6 +56,10 @@ public class Pawn extends Piece {
             }
         }
 
+        if (canPassant(target, board)) {
+            return true;
+        }
+
         return false;
 
     }
@@ -73,6 +81,27 @@ public class Pawn extends Piece {
         return false;
     }
 
+    public boolean canPassant(Coordinates target, Board board) {
+        int moveDir = (colour == pieceColour.WHITE) ? 1 : -1;
+        int dUpDown = target.getRank() - coordinates.getRank();
+        int dLeftRight = target.getFile() - coordinates.getFile();
+
+        if (board.getLastMove() != null) {
+            Piece last = board.getLastMove().piece;
+
+            if (last.getType() == pieceType.PAWN) {
+                Pawn victim = (Pawn) last;
+                if (victim.getJustMovedTwo() == true && dUpDown == moveDir && Math.abs(dLeftRight) == 1) {
+                    if (Math.abs(victim.getCoordinates().getCol() - this.coordinates.getCol()) == 1) {
+                        return true;
+                    }
+                }
+            }
+
+        }
+        return false;
+    }
+
     @Override
     public String getSymbol() {
         if (colour == pieceColour.WHITE) {
@@ -82,19 +111,19 @@ public class Pawn extends Piece {
         }
     }
 
-    public boolean getCanMoveTwo(){
+    public boolean getCanMoveTwo() {
         return canMoveTwo;
     }
 
-    public void setCanMoveTwo(boolean x){
+    public void setCanMoveTwo(boolean x) {
         canMoveTwo = x;
     }
 
-    public boolean getJustMovedTwo(){
+    public boolean getJustMovedTwo() {
         return justMovedTwo;
     }
 
-    public void setJustMovedTwo(boolean x){
+    public void setJustMovedTwo(boolean x) {
         justMovedTwo = x;
     }
 

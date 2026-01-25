@@ -196,7 +196,7 @@ public class Game {
 
     private void handleAImove() {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 5, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, 4, isWhiteTurn);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);
@@ -204,6 +204,7 @@ public class Game {
             if (bestMove.piece.getType() == pieceType.PAWN) {
                 int r = bestMove.getMoveTo().getRank();
                 if (r == 1 || r == 8) {
+                    // TODO: Chessbot may not recognise that pawns actually promote
                     board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(), bestMove.getMoveTo()));
                 }
             }

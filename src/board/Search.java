@@ -21,24 +21,29 @@ public class Search {
     }
 
     private Eval evaluator = new Eval();
-    private static final double inf = 1000000;
-    private static final double checkmate = 1000000;
+    private static final int inf = 1000000;
+    private static final int checkmate = 1000000;
 
     public Move findBestMove(Board board, int depth, boolean isWhiteTurn) {
         long startTime = System.currentTimeMillis();
         Move bestMove = null;
-        double bestScore = (isWhiteTurn) ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-        double alpha = Double.NEGATIVE_INFINITY;
-        double beta = Double.POSITIVE_INFINITY;
+        int bestScore = (isWhiteTurn) ? -1000000 : 1000000;
+        int alpha = -1000000;
+        int beta = 1000000;
         pieceColour colour = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
+        pieceColour colourOpponent = (isWhiteTurn) ? pieceColour.BLACK : pieceColour.WHITE;
         List<Move> moves = board.getLegalMoves(colour);
         // Sort moves here for the speedup
         sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
-            double score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn);
+            int extension = 0;
+            // See if there is a check on the board (interesting position)
+            if (board.isSquareAttacked(board.findKing(colourOpponent), colourOpponent) || board.isSquareAttacked(board.findKing(colour), colour)){
+                extension = 1;
+            }
+            int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
             board.undoMove();
-
             if (isWhiteTurn) {
                 if (score > bestScore) {
                     bestScore = score;
@@ -69,7 +74,7 @@ public class Search {
      * @param isWhiteTurn
      * @return
      */
-    private double minimax(Board board, int depth, double alpha, double beta, boolean isWhiteTurn) {
+    private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn) {
         pieceColour turn = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
         if (depth == 0) {
             return quiescenceSearch(board, alpha, beta, isWhiteTurn);
@@ -90,25 +95,25 @@ public class Search {
 
         // Maximising player
         if (isWhiteTurn) {
-            double maxEval = -inf;
+            int maxEval = -inf;
             for (Move m : moves) {
                 board.doMove(m);
-                double score = minimax(board, depth - 1, alpha, beta, false);
+                int score = minimax(board, depth - 1, alpha, beta, false);
                 board.undoMove();
                 maxEval = Math.max(maxEval, score);
                 // Prune branch if unfavourable
                 if (maxEval >= beta) {
-                    break;
+                    break;  
                 }
                 alpha = Math.max(alpha, score);
             }
             return maxEval;
         } else {
             // Minimising player
-            double minEval = inf;
+            int minEval = inf;
             for (Move m : moves) {
                 board.doMove(m);
-                double score = minimax(board, depth - 1, alpha, beta, true);
+                int score = minimax(board, depth - 1, alpha, beta, true);
                 board.undoMove();
                 minEval = Math.min(minEval, score);
                 if (minEval <= alpha) {
@@ -131,8 +136,8 @@ public class Search {
      * @param isWhiteTurn
      * @return
      */
-    private double quiescenceSearch(Board board, double alpha, double beta, boolean isWhiteTurn) {
-        double pat = evaluator.evalAll(board, isWhiteTurn);
+    private int quiescenceSearch(Board board, int alpha, int beta, boolean isWhiteTurn) {
+        int pat = evaluator.evalAll(board, isWhiteTurn);
         if (isWhiteTurn) {
             if (pat >= beta) {
                 return beta;
@@ -153,7 +158,7 @@ public class Search {
         sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
-            double score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
+            int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
             board.undoMove();
 
             if(isWhiteTurn){
