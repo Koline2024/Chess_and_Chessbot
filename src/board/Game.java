@@ -22,6 +22,7 @@ public class Game {
         String userInput = "";
         pieceColour playerSide = null;
         AI = new Search();
+        board.initZobrist(isWhiteTurn);
         while (playerSide == null) {
             System.out.println("Do you want to play white or black? ");
             try {
@@ -158,6 +159,11 @@ public class Game {
                     newPiece = new Queen(colour, coords);
             }
             board.promote(coords, newPiece);
+            int c = (colour == pieceColour.WHITE) ? 0 : 1;
+            board.zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
+            board.zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
+
+
         } catch (Exception e) {
             System.out.println("IO Exception! ");
         }

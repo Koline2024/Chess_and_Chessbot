@@ -42,8 +42,12 @@ public class Board {
 
                             // Optimization: Don't check moving onto your own pieces
                             Piece targetPiece = grid[targetRow][targetCol];
-                            if (targetPiece != null && targetPiece.getColour() == colour)
+                            if (targetPiece != null && targetPiece.getColour() == colour) {
                                 continue;
+                            }
+                            if (targetPiece != null && targetPiece.getType() == pieceType.KING) {
+                                continue; // Don't allow capturing the king
+                            }
 
                             Coordinates to = new Coordinates(8 - targetRow, (char) ('a' + targetCol));
                             Move testMove = new Move(p, p.getCoordinates(), to);
@@ -71,6 +75,27 @@ public class Board {
         // Update history
         move.setPieceWasMovedBefore(p.hasMoved());
         move.setWasFirstMove(!p.hasMoved());
+        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+
+        if (!history.isEmpty()) {
+            Move prev = history.peek();
+            if (prev.isEnPassant()) {
+                int file = prev.getMoveTo().getCol();
+                zobristHash ^= Zobrist.passantFiles[file];
+            }
+        }
+        // Zobrist update
+        int colour = 0;
+        int enemyColour = 1;
+        if (p.getColour() == pieceColour.WHITE) {
+            colour = 0;
+            enemyColour = 1;
+        } else {
+            colour = 1;
+            enemyColour = 0;
+        }
+        int type = p.getType().ordinal();
+        zobristHash ^= Zobrist.pieces[colour][type][move.getMoveFrom().getIndex()]; // Zobrist from
 
         if (p.getType() == pieceType.PAWN) {
             Pawn pawn = (Pawn) p;
@@ -81,12 +106,16 @@ public class Board {
         move.setCapturedPiece(getPiece(move.getMoveTo()));
         if (move.getCapturePiece() != null) {
             removePieceFromSystem(move.getCapturePiece());
+            zobristHash ^= Zobrist.pieces[enemyColour][move.getCapturePiece().getType().ordinal()][move.getMoveTo()
+                    .getIndex()];
         }
 
         grid[move.getMoveFrom().getRow()][move.getMoveFrom().getCol()] = null;
         setPiece(move.getMoveTo(), p);
         p.setCoordinates(move.getMoveTo());
         p.setMoved(true);
+
+        zobristHash ^= Zobrist.pieces[colour][type][move.getMoveTo().getIndex()]; // Zobrist to
 
         // Castling rook swap
         if (move.isCastling()) {
@@ -116,6 +145,32 @@ public class Board {
                 king.setMoved(true);
             }
         }
+
+        // Handle en passant with zobrist
+        if (move.isEnPassant()) {
+            // The pawn we are capturing is BEHIND us
+            int offset = (p.getColour() == pieceColour.WHITE) ? 1 : -1;
+            int r = move.getMoveTo().getRow() + offset;
+            int c = move.getMoveTo().getCol();
+
+            Piece victim = grid[r][c];
+            if (victim != null) {
+                removePieceFromSystem(victim);
+                grid[r][c] = null; // Remove from board
+
+                // Zobrist: Remove the captured pawn
+                zobristHash ^= Zobrist.pieces[enemyColour][pieceType.PAWN.ordinal()][victim.getCoordinates()
+                        .getIndex()];
+            }
+        }
+
+        if (p.getType() == pieceType.PAWN && Math.abs(move.from.getRow() - move.to.getRow()) == 2) {
+            int file = move.to.getCol();
+            zobristHash ^= Zobrist.passantFiles[file]; // Add new EP opportunity
+        }
+
+        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+        zobristHash ^= Zobrist.turn;
         lastMove = move;
         history.push(move);
     }
@@ -151,28 +206,33 @@ public class Board {
             int endCol = move.getMoveTo().getCol();
             King k = (King) move.piece; // Casting is lazy but fine because king is ensured prior
             if (k.hasMoved() == true) {
-                System.out.println("Cannot castle because king has moved prior. ");
                 return false;
             }
             // Check the rook
             int rookCol = (endCol == 6) ? 7 : 0;
+
+            // Guard against invalid indices to avoid ArrayIndexOutOfBoundsException
+            if (row < 0 || row > 7 || rookCol < 0 || rookCol > 7) {
+                return false;
+            }
+
             // Guard clause
             if (grid[row][rookCol] != null) {
                 if (grid[row][rookCol].getType() != pieceType.ROOK) {
-                    System.out.println("Not a rook you are trying to castle with. ");
                     return false;
                 }
             }
             Rook rook = (Rook) grid[row][rookCol]; // Again casting is fine since rook is ensured
             if (rook == null || rook.getColour() != k.getColour() || rook.hasMoved()) {
-                System.out.println("Error in castling with the rook. ");
                 return false;
             }
 
             int step = (endCol > startCol) ? 1 : -1;
             for (int c = startCol + step; c != rookCol; c += step) {
+                if (c < 0 || c > 7) {
+                    return false;
+                }
                 if (grid[row][c] != null) {
-                    System.out.println("Castling middle square blocked");
                     return false; // Square is blocked
                 }
             }
@@ -319,13 +379,13 @@ public class Board {
         }
         // If we reach here, something went wrong. Sync and retry.
         syncPieceLists();
+        pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces; // Re fetch lists
         for (Piece p : pieceList) {
             if (p.getType() == pieceType.KING) {
                 return p.getCoordinates();
             }
         }
-        System.out.println("Even after a sync the king could not be found!");
-        throw new RuntimeErrorException(null);
+        throw new RuntimeException("Even after a sync the " + colour + " king could not be found!");
     }
 
     public void printBoard(pieceColour side) {
@@ -452,10 +512,13 @@ public class Board {
             int rookStartCol = (last.getMoveTo().getCol() == 6) ? 7 : 0;
             int rookEndCol = (last.getMoveTo().getCol() == 6) ? 5 : 3;
 
-            Rook rook = (Rook) grid[row][rookEndCol];
-            grid[row][rookEndCol] = null; // Clear square
-            setPiece(new Coordinates(last.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
-            rook.setMoved(false);
+            if (grid[row][rookEndCol] != null) {
+                Rook rook = (Rook) grid[row][rookEndCol];
+                grid[row][rookEndCol] = null; // Clear square
+                setPiece(new Coordinates(last.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
+                rook.setMoved(false);
+
+            }
         }
 
         // if(last.piece.getType() == pieceType.PAWN){
@@ -497,7 +560,8 @@ public class Board {
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
-        // TODO: Optimise by checking only valid squares using some sort
+        // TODO: Optimise by checking only valid squares using some sort/
+        // TODO: use magic bitboards
         List<Move> legalMoves = new ArrayList<>();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -507,25 +571,126 @@ public class Board {
                     // Check all squares for this piece
                     for (int tRow = 0; tRow < 8; tRow++) {
                         for (int tCol = 0; tCol < 8; tCol++) {
-                            // Skip own pieces  
+                            // Skip own pieces
                             Piece target = grid[tRow][tCol];
-                            if (target != null && target.getColour() == colour) {
-                                continue;
+                            if (target != null) {
+                                if (target.getColour() == colour || target.getType() == pieceType.KING) {
+                                    continue;
+                                }
                             }
                             Coordinates to = new Coordinates(8 - tRow, (char) ('a' + tCol));
-                            Move move = new Move(p, p.getCoordinates(), to);
                             // See if move is valid first before expensive check
-                            //if (move.piece.isValidMove(to, this)) {
+                            if (p.isValidMove(to, this)) {
+                                Move move = new Move(p, p.getCoordinates(), to);
                                 if (isMoveLegal(move)) { // Expensive check
                                     legalMoves.add(move);
                                 }
-                            //} 
+                            }
                         }
                     }
                 }
             }
         }
+        addCastlingMoves(legalMoves, colour);
         return legalMoves;
+    }
+
+    /**
+     * Helper method to help the AI recognise it can castle
+     * 
+     * @param moves
+     * @param colour
+     */
+    private void addCastlingMoves(List<Move> moves, pieceColour colour) {
+        // White rank is 1, Black rank is 8
+        int rank = (colour == pieceColour.WHITE) ? 1 : 8;
+        int row = (colour == pieceColour.WHITE) ? 7 : 0; // For grid access
+
+        Coordinates kingPos = new Coordinates(rank, 'e');
+        Piece king = grid[row][4]; // 'e' is index 4
+
+        if (king == null || king.getType() != pieceType.KING || king.getColour() != colour || king.hasMoved()) {
+            return;
+        }
+
+        if (isSquareAttacked(kingPos, colour)) {
+            return;
+        }
+
+        // --- KINGSIDE CASTLING ---
+        Piece kRook = grid[row][7]; // 'h' is index 7
+        if (kRook != null && kRook.getType() == pieceType.ROOK && !kRook.hasMoved()) {
+            // Path empty: f (5) and g (6)
+            if (grid[row][5] == null && grid[row][6] == null) {
+                Coordinates fSq = new Coordinates(rank, 'f');
+                Coordinates gSq = new Coordinates(rank, 'g');
+
+                if (!isSquareAttacked(fSq, colour) && !isSquareAttacked(gSq, colour)) {
+                    Move m = new Move(king, kingPos, gSq);
+                    m.setIsCastling(true);
+                    moves.add(m);
+                }
+            }
+        }
+
+        // --- QUEENSIDE CASTLING ---
+        Piece qRook = grid[row][0]; // 'a' is index 0
+        if (qRook != null && qRook.getType() == pieceType.ROOK && !qRook.hasMoved()) {
+            // Path empty: b (1), c (2), d (3)
+            if (grid[row][1] == null && grid[row][2] == null && grid[row][3] == null) {
+                Coordinates cSq = new Coordinates(rank, 'c');
+                Coordinates dSq = new Coordinates(rank, 'd');
+
+                if (!isSquareAttacked(cSq, colour) && !isSquareAttacked(dSq, colour)) {
+                    Move m = new Move(king, kingPos, cSq);
+                    m.setIsCastling(true);
+                    moves.add(m);
+                }
+            }
+        }
+    }
+
+    private void addEnPassantMoves(List<Move> moves, pieceColour colour) {
+        if (history.isEmpty())
+            return;
+        Move lastMove = history.peek(); // Look at previous move
+
+        // 1. Check if last move was a double pawn jump
+        if (lastMove.piece.getType() == pieceType.PAWN &&
+                Math.abs(lastMove.from.getRow() - lastMove.to.getRow()) == 2) {
+
+            int passingRow = lastMove.to.getRow();
+            int passingCol = lastMove.to.getCol();
+
+            // 2. Check left and right of that pawn for OUR pawns
+            // offsets: -1 (left), +1 (right)
+            int[] offsets = { -1, 1 };
+            for (int offset : offsets) {
+                int myCol = passingCol + offset;
+                if (myCol >= 0 && myCol <= 7) {
+                    Piece myPawn = grid[passingRow][myCol];
+                    if (myPawn != null && myPawn.getType() == pieceType.PAWN && myPawn.getColour() == colour) {
+
+                        // 3. Target square is "behind" the enemy pawn
+                        int targetRow = (colour == pieceColour.WHITE) ? passingRow - 1 : passingRow + 1; // -1 for white
+                                                                                                         // (up array),
+                                                                                                         // +1 for black
+                        Coordinates target = new Coordinates(8 - targetRow, (char) ('a' + passingCol)); // Convert to
+                                                                                                        // your Coords
+
+                        Move epMove = new Move(myPawn, myPawn.getCoordinates(), target);
+                        epMove.setIsEnPassant(true);
+                        // Note: Capture piece is NULL here because the square we land on is empty!
+                        // We handle the capture logic in doMove
+
+                        // 4. Safety Check (En Passant can rarely reveal a check on your King)
+                        if (isMoveSafe(epMove)) {
+                            moves.add(epMove);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -540,5 +705,63 @@ public class Board {
         return history.getLast();
     }
 
-    pu
+    // Disclaimer: I have no clue how any of this works.
+    public void initZobrist(boolean isWhiteTurn) {
+        zobristHash = 0;
+        for (Piece p : getPieceList(pieceColour.WHITE)) {
+            int type = p.getType().ordinal(); // map to 0-5
+            zobristHash ^= Zobrist.pieces[0][type][p.getCoordinates().getIndex()];
+        }
+        for (Piece p : getPieceList(pieceColour.BLACK)) {
+            int type = p.getType().ordinal(); // map to 0-5
+            zobristHash ^= Zobrist.pieces[1][type][p.getCoordinates().getIndex()];
+        }
+        if (!isWhiteTurn) {
+            zobristHash ^= Zobrist.turn;
+        }
+        if (lastMove != null && lastMove.piece.getType() == pieceType.PAWN) {
+            if (Math.abs(lastMove.to.getRow() - lastMove.from.getRow()) == 2) {
+                int file = lastMove.to.getCol(); // 0-7
+                zobristHash ^= Zobrist.passantFiles[file + 1];
+            }
+        }
+        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+    }
+
+    // Nor do I know how this works.
+    public int getCastlingMask() {
+        int mask = 0;
+
+        // --- WHITE RIGHTS ---
+        Piece whiteKing = grid[7][4]; // e1
+        if (whiteKing != null && whiteKing.getType() == pieceType.KING && !whiteKing.hasMoved()) {
+            // Check Kingside Rook (h1)
+            Piece wkRook = grid[7][7];
+            if (wkRook != null && wkRook.getType() == pieceType.ROOK && !wkRook.hasMoved()) {
+                mask |= 1;
+            }
+            // Check Queenside Rook (a1)
+            Piece wqRook = grid[7][0];
+            if (wqRook != null && wqRook.getType() == pieceType.ROOK && !wqRook.hasMoved()) {
+                mask |= 2;
+            }
+        }
+
+        // --- BLACK RIGHTS ---
+        Piece blackKing = grid[0][4]; // e8
+        if (blackKing != null && blackKing.getType() == pieceType.KING && !blackKing.hasMoved()) {
+            // Check Kingside Rook (h8)
+            Piece bkRook = grid[0][7];
+            if (bkRook != null && bkRook.getType() == pieceType.ROOK && !bkRook.hasMoved()) {
+                mask |= 4;
+            }
+            // Check Queenside Rook (a8)
+            Piece bqRook = grid[0][0];
+            if (bqRook != null && bqRook.getType() == pieceType.ROOK && !bqRook.hasMoved()) {
+                mask |= 8;
+            }
+        }
+
+        return mask;
+    }
 }

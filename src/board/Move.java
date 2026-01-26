@@ -49,6 +49,10 @@ public class Move {
     public boolean isEnPassant(){
         return isEnPassant;
     }
+    
+    public void setIsEnPassant(boolean x){
+        isEnPassant = x;
+    }
 
     public Piece getCapturePiece(){
         return capturedPiece;

@@ -43,5 +43,12 @@ public class Coordinates{
     return ""+file+rank;
   }
 
+  /**
+   * Return a 0-63 indexed position for Zobrist hashing
+   * @return
+   */
+  public int getIndex(){
+    return (rank-1)*8 + (file - 'a');
+  }
 
 } 
