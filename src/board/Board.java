@@ -14,11 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import javax.management.RuntimeErrorException;
-
 public class Board {
 
     public long zobristHash;
+    public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check. 
     private Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
@@ -70,6 +69,7 @@ public class Board {
     }
 
     public void doMove(Move move) {
+
         Piece p = move.piece;
 
         // Update history
@@ -315,31 +315,10 @@ public class Board {
     }
 
     private boolean isMoveSafe(Move move) {
-        // In the case of a capture
-
-        // Try using domove and undomove instead of this code
-        // Piece capturedPiece = getPiece(move.getMoveTo());
-        // Coordinates originalCoords = move.getMoveFrom();
-
-        // grid[originalCoords.getRow()][originalCoords.getCol()] = null;
-        // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = move.piece;
-        // if (capturedPiece != null) {
-        // removePieceFromSystem(capturedPiece);
-        // }
-        // move.piece.setCoordinates(move.getMoveTo());
-
         doMove(move);
         // Find where the king is
         Coordinates kingPos = findKing(move.piece.getColour());
         boolean safe = !isSquareAttacked(kingPos, move.piece.getColour());
-
-        // Undo simulated move
-        // grid[originalCoords.getRow()][originalCoords.getCol()] = move.piece;
-        // grid[move.getMoveTo().getRow()][move.getMoveTo().getCol()] = capturedPiece;
-        // move.piece.setCoordinates(originalCoords);
-        // if(capturedPiece != null){
-        // addPieceToSystem(capturedPiece);
-        // }
         undoMove();
         return safe;
     }
@@ -560,7 +539,6 @@ public class Board {
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
-        // TODO: Optimise by checking only valid squares using some sort/
         // TODO: use magic bitboards
         List<Move> legalMoves = new ArrayList<>();
         for (int row = 0; row < 8; row++) {

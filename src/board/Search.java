@@ -12,56 +12,36 @@ public class Search {
 
     private static Map<pieceType, Integer> materialValues = new EnumMap<>(pieceType.class);
     static {
-        materialValues.put(pieceType.PAWN, 1);
-        materialValues.put(pieceType.KNIGHT, 3);
-        materialValues.put(pieceType.BISHOP, 3);
-        materialValues.put(pieceType.ROOK, 5);
-        materialValues.put(pieceType.QUEEN, 9);
-        materialValues.put(pieceType.KING, 200);
+        materialValues.put(pieceType.PAWN, 100);
+        materialValues.put(pieceType.KNIGHT, 300);
+        materialValues.put(pieceType.BISHOP, 300);
+        materialValues.put(pieceType.ROOK, 500);
+        materialValues.put(pieceType.QUEEN, 900);
+        materialValues.put(pieceType.KING, 20000);
     }
 
     private Eval evaluator = new Eval();
     private static final int inf = 1000000;
-    private static final int checkmate = 1000000;
+    private static final int checkmate = 900000;
+    private static final TranspositionTable tTable = new TranspositionTable(1000); // I have 16 gb ram lol
 
-    public Move findBestMove(Board board, int depth, boolean isWhiteTurn) {
+    public Move findBestMove(Board board, int maxDepth, boolean isWhiteTurn) {
         long startTime = System.currentTimeMillis();
-        Move bestMove = null;
-        int bestScore = (isWhiteTurn) ? -1000000 : 1000000;
-        int alpha = -1000000;
-        int beta = 1000000;
-        pieceColour colour = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
-        pieceColour colourOpponent = (isWhiteTurn) ? pieceColour.BLACK : pieceColour.WHITE;
-        List<Move> moves = board.getLegalMoves(colour);
-        // Sort moves here for the speedup
-        sortMoves(moves, board);
-        for (Move m : moves) {
-            board.doMove(m);
-            int extension = 0;
-            // See if there is a check on the board (interesting position)
-            if (board.isSquareAttacked(board.findKing(colourOpponent), colourOpponent) || board.isSquareAttacked(board.findKing(colour), colour)){
-                extension = 1;
+        Move overallBestMove = null;
+        // Iterative deepening
+        for (int depth = 1; depth < maxDepth; depth++) {
+            long time = System.currentTimeMillis();
+            int alpha = -inf;
+            int beta = inf;
+            minimax(board, depth, alpha, beta, isWhiteTurn);
+            TranspositionTable.Entry rootEntry = tTable.get(board.zobristHash);
+            if (rootEntry != null && rootEntry.bestMove != null) {
+                overallBestMove = rootEntry.bestMove;
             }
-            int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
-            board.undoMove();
-            if (isWhiteTurn) {
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = m;
-                }
-                alpha = Math.max(alpha, score);
-            } else {
-                if (score < bestScore) {
-                    bestScore = score;
-                    bestMove = m;
-                }
-                beta = Math.min(beta, score);
-            }
-
         }
-        long time = System.currentTimeMillis() - startTime;
-        System.out.println("Best move: " + bestMove + " was found in " + time + " ms.");
-        return bestMove;
+        long time = System.currentTimeMillis();
+        System.out.println("Move " + overallBestMove + " found in " + (time - startTime)/1000 + " seconds");
+        return overallBestMove;
     }
 
     /**
@@ -75,12 +55,29 @@ public class Search {
      * @return
      */
     private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn) {
+        int originalAlpha = alpha;
+        TranspositionTable.Entry ttEntry = tTable.get(board.zobristHash); // Get entry for this board
+        if (ttEntry != null && ttEntry.key == board.zobristHash && ttEntry.depth >= depth) {
+            if (ttEntry.flag == TranspositionTable.exact) {
+                return ttEntry.score;
+            } else if (ttEntry.flag == TranspositionTable.lowerBound) {
+                alpha = Math.max(alpha, ttEntry.score);
+            } else if (ttEntry.flag == TranspositionTable.upperBound) {
+                beta = Math.min(beta, ttEntry.score);
+            }
+
+            if (alpha >= beta) {
+                return ttEntry.score;
+            }
+        }
+
         pieceColour turn = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
         if (depth == 0) {
             return quiescenceSearch(board, alpha, beta, isWhiteTurn);
         }
         List<Move> moves = board.getLegalMoves(turn);
         sortMoves(moves, board);
+
         // Check for mating moves first
         if (moves.isEmpty()) {
             Coordinates kingPos = board.findKing(turn);
@@ -93,43 +90,62 @@ public class Search {
             }
         }
 
-        // Maximising player
-        if (isWhiteTurn) {
-            int maxEval = -inf;
-            for (Move m : moves) {
-                board.doMove(m);
-                int score = minimax(board, depth - 1, alpha, beta, false);
-                board.undoMove();
-                maxEval = Math.max(maxEval, score);
-                // Prune branch if unfavourable
-                if (maxEval >= beta) {
-                    break;  
-                }
-                alpha = Math.max(alpha, score);
-            }
-            return maxEval;
-        } else {
-            // Minimising player
-            int minEval = inf;
-            for (Move m : moves) {
-                board.doMove(m);
-                int score = minimax(board, depth - 1, alpha, beta, true);
-                board.undoMove();
-                minEval = Math.min(minEval, score);
-                if (minEval <= alpha) {
-                    break;
-                }
-                beta = Math.min(beta, minEval);
-            }
-            return minEval;
-
+        Move ttBestMove = (ttEntry != null) ? ttEntry.bestMove : null;
+        sortMoves(moves, board);
+        if (ttBestMove != null) {
+            moves.add(0, ttBestMove); // Add the best TT move to the front
         }
 
+        int bestScore = isWhiteTurn ? -inf : inf;
+        Move bestMove = null;
+        for (Move m : moves) {
+            board.doMove(m);
+            int extension = 0;
+            // If a king is in check (interesting position), extend search by 1
+            for(Piece p : board.getPieceList(turn)){
+                if(p.getType() == pieceType.KING){
+                    if(board.isSquareAttacked(p.getCoordinates(), p.getColour())){
+                        extension = 1;
+                    }
+                }
+            }
+
+            int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
+            board.undoMove();
+            if (isWhiteTurn) {
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = m;
+                }
+                alpha = Math.max(alpha, bestScore);
+            } else {
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMove = m;
+                }
+                beta = Math.min(beta, bestScore);
+            }
+            if (alpha >= beta) {
+                break; // Snip
+            }
+        }
+        
+        int flag;
+        if (bestScore <= originalAlpha) {
+            flag = TranspositionTable.upperBound;
+        } else if (bestScore >= beta) {
+            flag = TranspositionTable.lowerBound;
+        } else {
+            flag = TranspositionTable.exact;
+        }
+        tTable.store(board.zobristHash, depth, bestScore, flag, bestMove);
+        return bestScore;
     }
 
     /**
-     * Quiescence search is applied after standard minimax to 
+     * Quiescence search is applied after standard minimax to
      * avoid the horizon effect problem.
+     * 
      * @param board
      * @param alpha
      * @param beta
@@ -153,6 +169,7 @@ public class Search {
                 beta = pat;
             }
         }
+
         List<Move> moves = board.getLegalMoves(isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK);
         moves.removeIf(m -> m.getCapturePiece() == null); // Filter for only captures
         sortMoves(moves, board);
@@ -161,18 +178,18 @@ public class Search {
             int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
             board.undoMove();
 
-            if(isWhiteTurn){
-                if(score >= beta){
+            if (isWhiteTurn) {
+                if (score >= beta) {
                     return beta;
                 }
-                if(score > alpha){
+                if (score > alpha) {
                     alpha = score;
                 }
-            }else{
-                if(score <= alpha){
+            } else {
+                if (score <= alpha) {
                     return alpha;
                 }
-                if(score < beta){
+                if (score < beta) {
                     beta = score;
                 }
             }
@@ -186,6 +203,7 @@ public class Search {
      * Scoremove gives each possible move on the board a score
      * based on how likely they are to be good, prioritising advantageous
      * captures and promotions to speed up alpha beta pruning.
+     * 
      * @param move
      * @param board
      * @return
@@ -193,7 +211,7 @@ public class Search {
     private int scoreMove(Move move, Board board) {
         int score = 0;
         Piece actor = move.piece;
-        Piece victim = move.getCapturePiece();
+        Piece victim = move.getCapturePiece(); // MVV LVA
         if (victim != null) {
             score = (materialValues.get(victim.getType()) * 10) - materialValues.get(actor.getType());
             score += 10000;
