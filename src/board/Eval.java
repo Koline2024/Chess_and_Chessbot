@@ -139,8 +139,9 @@ public class Eval {
         int totalScore = 0;
         totalScore += deltaMaterial;
         totalScore += evalPST(whitePieces, blackPieces);
+        totalScore += evalOpening(whitePieces, blackPieces);
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
-        totalScore += evalMobility(whiteMoves, blackMoves);
+        //totalScore += evalMobility(whiteMoves, blackMoves);
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
         totalScore += evalFinale(whiteKing, blackKing, deltaMaterial);
 
@@ -228,7 +229,7 @@ public class Eval {
             case KNIGHT:
                 return 6;
             case BISHOP:
-                return 5;
+                return 8;
             case ROOK:
                 return 5;
             case QUEEN:
@@ -249,7 +250,7 @@ public class Eval {
         for (Piece p : blackPieces) {
             currentPhase += phaseWeight(p.getType());
         }
-        return (double) currentPhase / totalPhase;
+        return Math.clamp((double) currentPhase / totalPhase, 0, 1);
     }
 
     private int phaseWeight(pieceType t) {
@@ -259,6 +260,7 @@ public class Eval {
             case ROOK:
                 return 2;
             case BISHOP:
+                return 1;
             case KNIGHT:
                 return 1;
             default:
@@ -379,5 +381,50 @@ public class Eval {
             finaleScore -= 4 * (14 - dist);
         }
         return finaleScore;
+    }
+
+    public int evalOpening(List<Piece> whitePieces, List<Piece> blackPieces) {
+        int openingScore = 0;
+        for (Piece p : whitePieces) {
+            if (p.hasMoved()) {
+                openingScore += 10;
+            }
+        }
+        for (Piece p : blackPieces) {
+            if (p.hasMoved()) {
+                openingScore -= 10;
+            }
+        }
+        return openingScore;
+    }
+
+    public int evalPositionals(Board board, List<Piece> whitePieces, List<Piece> blackPieces) {
+        int positionalScore = 0;
+        for (Piece p : whitePieces) {
+            if (p.getType() == pieceType.PAWN) {
+                for (int i = p.getCoordinates().getRow(); i < 8; i++) {
+                    Piece p2 = (board.getPieceAt(i, p.getCoordinates().getCol()));
+                    if (p2 != null) {
+                        if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
+                            positionalScore -= 30; // Penalise doubled pawns or tripled pawns
+                        }
+                    }
+                }
+            }
+        }
+        for (Piece p : blackPieces) {
+            if (p.getType() == pieceType.PAWN) {
+                for (int i = 8; i > 1; i--) {
+                    Piece p2 = board.getPieceAt(i, p.getCoordinates().getCol());
+                    if (p2 != null) {
+                        if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
+                            positionalScore -= 30; // Penalise doubled pawns or tripled pawns
+                        }
+                    }
+                }
+            }
+        }
+
+        return positionalScore;
     }
 }

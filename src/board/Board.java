@@ -17,7 +17,7 @@ import java.util.Stack;
 public class Board {
 
     public long zobristHash;
-    public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check. 
+    public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check.
     private Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
@@ -176,9 +176,21 @@ public class Board {
     }
 
     private void setPiece(Coordinates c, Piece p) {
+        // If there was a piece there, it's being replaced/captured
+        Piece oldPiece = grid[c.getRow()][c.getCol()];
+        if (oldPiece != null) {
+            getPieceList(oldPiece.getColour()).remove(oldPiece);
+        }
+
         grid[c.getRow()][c.getCol()] = p;
+
         if (p != null) {
             p.setCoordinates(c);
+            // Only add if it's not already in the list (prevents duplicates)
+            List<Piece> list = getPieceList(p.getColour());
+            if (!list.contains(p)) {
+                list.add(p);
+            }
         }
     }
 
@@ -500,10 +512,6 @@ public class Board {
             }
         }
 
-        // if(last.piece.getType() == pieceType.PAWN){
-        // ((Pawn) last.piece).setCanMoveTwo(true);
-        // }
-
     }
 
     public List<Piece> getPieceList(pieceColour colour) {
@@ -570,6 +578,7 @@ public class Board {
             }
         }
         addCastlingMoves(legalMoves, colour);
+        addEnPassantMoves(legalMoves, colour);
         return legalMoves;
     }
 
