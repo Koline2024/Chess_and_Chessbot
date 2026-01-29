@@ -30,7 +30,6 @@ public class Search {
         Move overallBestMove = null;
         // Iterative deepening
         for (int depth = 1; depth < maxDepth; depth++) {
-            long time = System.currentTimeMillis();
             int alpha = -inf;
             int beta = inf;
             minimax(board, depth, alpha, beta, isWhiteTurn);

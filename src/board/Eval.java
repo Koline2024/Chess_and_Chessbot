@@ -142,6 +142,8 @@ public class Eval {
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
         totalScore += evalMobility(whiteMoves, blackMoves);
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
+        totalScore += evalPositionals(board, whitePieces, blackPieces);
+        totalScore += evalOpening(whitePieces, blackPieces);
         totalScore += evalFinale(whiteKing, blackKing, deltaMaterial);
 
         return totalScore;
@@ -379,5 +381,50 @@ public class Eval {
             finaleScore -= 4 * (14 - dist);
         }
         return finaleScore;
+    }
+
+    public int evalOpening(List<Piece> whitePieces, List<Piece> blackPieces) {
+        int openingScore = 0;
+        for (Piece p : whitePieces) {
+            if (p.hasMoved()) {
+                openingScore += 10;
+            }
+        }
+        for (Piece p : blackPieces) {
+            if (p.hasMoved()) {
+                openingScore -= 10;
+            }
+        }
+        return openingScore;
+    }
+
+    public int evalPositionals(Board board, List<Piece> whitePieces, List<Piece> blackPieces) {
+        int positionalScore = 0;
+        for (Piece p : whitePieces) {
+            if (p.getType() == pieceType.PAWN) {
+                for (int i = p.getCoordinates().getRow(); i < 8; i++) {
+                    Piece p2 = (board.getPieceAt(i, p.getCoordinates().getCol()));
+                    if (p2 != null) {
+                        if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
+                            positionalScore -= 30; // Penalise doubled pawns or tripled pawns
+                        }
+                    }
+                }
+            }
+        }
+        for (Piece p : blackPieces) {
+            if (p.getType() == pieceType.PAWN) {
+                for (int i = p.getCoordinates().getRow(); i >= 0; i--) {
+                    Piece p2 = board.getPieceAt(i, p.getCoordinates().getCol());
+                    if (p2 != null) {
+                        if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
+                            positionalScore -= 30; // Penalise doubled pawns or tripled pawns
+                        }
+                    }
+                }
+            }
+        }
+
+        return positionalScore;
     }
 }
