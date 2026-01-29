@@ -17,7 +17,7 @@ import java.util.Stack;
 public class Board {
 
     public long zobristHash;
-    public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check. 
+    public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check.
     private Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
@@ -69,7 +69,6 @@ public class Board {
     }
 
     public void doMove(Move move) {
-
         Piece p = move.piece;
 
         // Update history
@@ -84,6 +83,22 @@ public class Board {
                 zobristHash ^= Zobrist.passantFiles[file];
             }
         }
+        // Determine if this move is an EP move (could not find a better place to do it)
+        // TODO: this fix makes pawns disappear.
+        // if(p.getType() == pieceType.PAWN && Math.abs(move.getMoveFrom().getCol() -
+        // move.getMoveTo().getCol()) == 1){
+        // if(history.peek().piece.getType() == pieceType.PAWN){
+        // Pawn p2nd = (Pawn) history.peek().piece;
+        // if(p2nd.getJustMovedTwo() == true){
+        // if(p2nd.getCoordinates().getRow() == p.getCoordinates().getRow() - 1 ||
+        // p2nd.getCoordinates().getRow() == p.getCoordinates().getRow() + 1 ){
+        // move.setIsEnPassant(true);
+        // }
+        // }
+        // }
+
+        // }
+
         // Zobrist update
         int colour = 0;
         int enemyColour = 1;
@@ -155,6 +170,7 @@ public class Board {
 
             Piece victim = grid[r][c];
             if (victim != null) {
+                move.setCapturedPiece(victim);
                 removePieceFromSystem(victim);
                 grid[r][c] = null; // Remove from board
 
@@ -478,6 +494,22 @@ public class Board {
             last.getCapturePiece().setCoordinates(last.to);
         }
 
+        if (last.isEnPassant()) {
+
+            grid[last.to.getRow()][last.to.getCol()] = null;
+
+            Piece captured = last.getCapturePiece();
+            int offset = (last.piece.getColour() == pieceColour.WHITE) ? 1 : -1;
+            int r = last.to.getRow() + offset;
+            int c = last.to.getCol();
+
+            grid[r][c] = captured;
+            if (captured != null) {
+                // We must update the internal coordinates of the piece we just put back
+                captured.setCoordinates(new Coordinates(8 - r, (char) ('a' + c)));
+            }
+        }
+
         if (last.wasFirstMove()) {
             last.piece.setMoved(false);
             if (last.piece.getType() == pieceType.PAWN) {
@@ -541,34 +573,29 @@ public class Board {
     public List<Move> getLegalMoves(pieceColour colour) {
         // TODO: use magic bitboards
         List<Move> legalMoves = new ArrayList<>();
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                Piece p = grid[row][col];
-                // If piece belongs to the active player
-                if (p != null && p.getColour() == colour) {
-                    // Check all squares for this piece
-                    for (int tRow = 0; tRow < 8; tRow++) {
-                        for (int tCol = 0; tCol < 8; tCol++) {
-                            // Skip own pieces
-                            Piece target = grid[tRow][tCol];
-                            if (target != null) {
-                                if (target.getColour() == colour || target.getType() == pieceType.KING) {
-                                    continue;
-                                }
-                            }
-                            Coordinates to = new Coordinates(8 - tRow, (char) ('a' + tCol));
-                            // See if move is valid first before expensive check
-                            if (p.isValidMove(to, this)) {
-                                Move move = new Move(p, p.getCoordinates(), to);
-                                if (isMoveLegal(move)) { // Expensive check
-                                    legalMoves.add(move);
-                                }
-                            }
+        List<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
+        for (Piece p : pieceList) {
+            for (int tRow = 0; tRow < 8; tRow++) {
+                for (int tCol = 0; tCol < 8; tCol++) {
+                    // Skip own pieces
+                    Piece target = grid[tRow][tCol];
+                    if (target != null) {
+                        if (target.getColour() == colour || target.getType() == pieceType.KING) {
+                            continue;
+                        }
+                    }
+                    Coordinates to = new Coordinates(8 - tRow, (char) ('a' + tCol));
+                    // See if move is valid first before expensive check
+                    if (p.isValidMove(to, this)) {
+                        Move move = new Move(p, p.getCoordinates(), to);
+                        if (isMoveLegal(move)) { // Expensive check
+                            legalMoves.add(move);
                         }
                     }
                 }
             }
         }
+        addEnPassantMoves(legalMoves, colour); // This broken fucking code doesn't work
         addCastlingMoves(legalMoves, colour);
         return legalMoves;
     }
@@ -629,11 +656,12 @@ public class Board {
     }
 
     private void addEnPassantMoves(List<Move> moves, pieceColour colour) {
-        if (history.isEmpty())
+        if (history.isEmpty()) {
             return;
+        }
         Move lastMove = history.peek(); // Look at previous move
 
-        // 1. Check if last move was a double pawn jump
+        // Check if last move was a double pawn jump
         if (lastMove.piece.getType() == pieceType.PAWN &&
                 Math.abs(lastMove.from.getRow() - lastMove.to.getRow()) == 2) {
 
@@ -656,7 +684,9 @@ public class Board {
                         Coordinates target = new Coordinates(8 - targetRow, (char) ('a' + passingCol)); // Convert to
                                                                                                         // your Coords
 
-                        Move epMove = new Move(myPawn, myPawn.getCoordinates(), target);
+                        Move epMove = new Move(myPawn,
+                                new Coordinates(myPawn.getCoordinates().getRank(), myPawn.getCoordinates().getFile()),
+                                target);
                         epMove.setIsEnPassant(true);
                         // Note: Capture piece is NULL here because the square we land on is empty!
                         // We handle the capture logic in doMove
