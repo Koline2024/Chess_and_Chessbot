@@ -83,21 +83,6 @@ public class Board {
                 zobristHash ^= Zobrist.passantFiles[file];
             }
         }
-        // Determine if this move is an EP move (could not find a better place to do it)
-        // TODO: this fix makes pawns disappear.
-        // if(p.getType() == pieceType.PAWN && Math.abs(move.getMoveFrom().getCol() -
-        // move.getMoveTo().getCol()) == 1){
-        // if(history.peek().piece.getType() == pieceType.PAWN){
-        // Pawn p2nd = (Pawn) history.peek().piece;
-        // if(p2nd.getJustMovedTwo() == true){
-        // if(p2nd.getCoordinates().getRow() == p.getCoordinates().getRow() - 1 ||
-        // p2nd.getCoordinates().getRow() == p.getCoordinates().getRow() + 1 ){
-        // move.setIsEnPassant(true);
-        // }
-        // }
-        // }
-
-        // }
 
         // Zobrist update
         int colour = 0;
@@ -488,16 +473,8 @@ public class Board {
         grid[last.from.getRow()][last.from.getCol()] = last.piece;
         last.piece.setCoordinates(last.from);
 
-        // Restore the captured piece (or null)
-        grid[last.to.getRow()][last.to.getCol()] = last.getCapturePiece();
-        if (last.getCapturePiece() != null) {
-            last.getCapturePiece().setCoordinates(last.to);
-        }
-
         if (last.isEnPassant()) {
-
             grid[last.to.getRow()][last.to.getCol()] = null;
-
             Piece captured = last.getCapturePiece();
             int offset = (last.piece.getColour() == pieceColour.WHITE) ? 1 : -1;
             int r = last.to.getRow() + offset;
@@ -508,17 +485,7 @@ public class Board {
                 // We must update the internal coordinates of the piece we just put back
                 captured.setCoordinates(new Coordinates(8 - r, (char) ('a' + c)));
             }
-        }
-
-        if (last.wasFirstMove()) {
-            last.piece.setMoved(false);
-            if (last.piece.getType() == pieceType.PAWN) {
-                ((Pawn) last.piece).setCanMoveTwo(true);
-            }
-        }
-
-        // Handle Special Cases (Castling)
-        if (last.isCastling()) {
+        } else if (last.isCastling()) {
             int row = last.getMoveFrom().getRow();
             int rookStartCol = (last.getMoveTo().getCol() == 6) ? 7 : 0;
             int rookEndCol = (last.getMoveTo().getCol() == 6) ? 5 : 3;
@@ -530,11 +497,20 @@ public class Board {
                 rook.setMoved(false);
 
             }
+        } else {
+            // Restore the captured piece (or null)
+            grid[last.to.getRow()][last.to.getCol()] = last.getCapturePiece();
+            if (last.getCapturePiece() != null) {
+                last.getCapturePiece().setCoordinates(last.to);
+            }
         }
 
-        // if(last.piece.getType() == pieceType.PAWN){
-        // ((Pawn) last.piece).setCanMoveTwo(true);
-        // }
+        if (last.wasFirstMove()) {
+            last.piece.setMoved(false);
+            if (last.piece.getType() == pieceType.PAWN) {
+                ((Pawn) last.piece).setCanMoveTwo(true);
+            }
+        }
 
     }
 
@@ -559,15 +535,21 @@ public class Board {
         if (p == null) {
             return;
         }
-        getPieceList(p.getColour()).add(p);
+        // Avoid adding duplicates to the internal piece lists
+        java.util.List<Piece> list = getPieceList(p.getColour());
+        if (!list.contains(p)) {
+            list.add(p);
+        }
     }
 
     private void removePieceFromSystem(Piece p) {
         if (p == null) {
             return;
         }
-        grid[p.getCoordinates().getRow()][p.getCoordinates().getCol()] = null;
-        getPieceList(p.getColour()).remove(p);
+        // Only remove from the internal piece list; do not mutate the grid here.
+        // Grid updates should be handled by move/undo logic to avoid accidental disappearance/duplication.
+        java.util.List<Piece> list = getPieceList(p.getColour());
+        list.remove(p);
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
@@ -655,12 +637,12 @@ public class Board {
         }
     }
 
+    // TODO: Fix this damn thing
     private void addEnPassantMoves(List<Move> moves, pieceColour colour) {
         if (history.isEmpty()) {
             return;
         }
         Move lastMove = history.peek(); // Look at previous move
-
         // Check if last move was a double pawn jump
         if (lastMove.piece.getType() == pieceType.PAWN &&
                 Math.abs(lastMove.from.getRow() - lastMove.to.getRow()) == 2) {
@@ -690,9 +672,10 @@ public class Board {
                         epMove.setIsEnPassant(true);
                         // Note: Capture piece is NULL here because the square we land on is empty!
                         // We handle the capture logic in doMove
+                        // moves.add(epMove);
 
                         // 4. Safety Check (En Passant can rarely reveal a check on your King)
-                        if (isMoveSafe(epMove)) {
+                        if (isMoveSafe(epMove)) { // The isMoveSafe check is the one bugging out!
                             moves.add(epMove);
                         }
                     }
@@ -710,7 +693,8 @@ public class Board {
         if (history.isEmpty()) {
             return null;
         }
-        return history.getLast();
+        // Stack#peek returns the top element without removing it
+        return history.peek();
     }
 
     // Disclaimer: I have no clue how any of this works.
@@ -730,7 +714,10 @@ public class Board {
         if (lastMove != null && lastMove.piece.getType() == pieceType.PAWN) {
             if (Math.abs(lastMove.to.getRow() - lastMove.from.getRow()) == 2) {
                 int file = lastMove.to.getCol(); // 0-7
-                zobristHash ^= Zobrist.passantFiles[file + 1];
+                // Use the same file index convention as doMove and guard against OOB
+                if (file >= 0 && file < Zobrist.passantFiles.length) {
+                    zobristHash ^= Zobrist.passantFiles[file];
+                }
             }
         }
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
