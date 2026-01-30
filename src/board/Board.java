@@ -476,14 +476,15 @@ public class Board {
         if (last.isEnPassant()) {
             grid[last.to.getRow()][last.to.getCol()] = null;
             Piece captured = last.getCapturePiece();
-            int offset = (last.piece.getColour() == pieceColour.WHITE) ? 1 : -1;
-            int r = last.to.getRow() + offset;
-            int c = last.to.getCol();
-
-            grid[r][c] = captured;
             if (captured != null) {
-                // We must update the internal coordinates of the piece we just put back
+                int offset = (last.piece.getColour() == pieceColour.WHITE) ? 1 : -1;
+                int r = last.to.getRow() + offset;
+                int c = last.to.getCol();
+
+                grid[r][c] = captured;
                 captured.setCoordinates(new Coordinates(8 - r, (char) ('a' + c)));
+                addPieceToSystem(captured); // Add back to list captured.setCoordinates(new Coordinates(8 - r, (char)
+                                            // ('a' + c)));
             }
         } else if (last.isCastling()) {
             int row = last.getMoveFrom().getRow();
@@ -512,6 +513,14 @@ public class Board {
             }
         }
 
+        if(last.piece.getType() == pieceType.PAWN){
+            Pawn p = (Pawn) last.piece;
+            if(last.getPieceWasMovedBefore() == false){
+                p.setCanMoveTwo(true);
+            }
+            p.setCanMoveTwo(false);
+            
+        }
     }
 
     public List<Piece> getPieceList(pieceColour colour) {
@@ -547,7 +556,8 @@ public class Board {
             return;
         }
         // Only remove from the internal piece list; do not mutate the grid here.
-        // Grid updates should be handled by move/undo logic to avoid accidental disappearance/duplication.
+        // Grid updates should be handled by move/undo logic to avoid accidental
+        // disappearance/duplication.
         java.util.List<Piece> list = getPieceList(p.getColour());
         list.remove(p);
     }
@@ -642,40 +652,55 @@ public class Board {
         if (history.isEmpty()) {
             return;
         }
-        Move lastMove = history.peek(); // Look at previous move
-        // Check if last move was a double pawn jump
-        if (lastMove.piece.getType() == pieceType.PAWN &&
-                Math.abs(lastMove.from.getRow() - lastMove.to.getRow()) == 2) {
+        Move lastMove = history.peek();
 
-            int passingRow = lastMove.to.getRow();
-            int passingCol = lastMove.to.getCol();
+        // STRICT CHECK: The last piece moved MUST be a Pawn
+        if (lastMove.piece.getType() != pieceType.PAWN) {
+            return;
+        }
 
-            // 2. Check left and right of that pawn for OUR pawns
-            // offsets: -1 (left), +1 (right)
-            int[] offsets = { -1, 1 };
-            for (int offset : offsets) {
-                int myCol = passingCol + offset;
-                if (myCol >= 0 && myCol <= 7) {
-                    Piece myPawn = grid[passingRow][myCol];
-                    if (myPawn != null && myPawn.getType() == pieceType.PAWN && myPawn.getColour() == colour) {
+        // STRICT CHECK: The last move MUST be a double push
+        if (Math.abs(lastMove.from.getRow() - lastMove.to.getRow()) != 2) {
+            return;
+        }
 
-                        // 3. Target square is "behind" the enemy pawn
-                        int targetRow = (colour == pieceColour.WHITE) ? passingRow - 1 : passingRow + 1; // -1 for white
-                                                                                                         // (up array),
-                                                                                                         // +1 for black
-                        Coordinates target = new Coordinates(8 - targetRow, (char) ('a' + passingCol)); // Convert to
-                                                                                                        // your Coords
+        int passingRow = lastMove.to.getRow();
+        int passingCol = lastMove.to.getCol();
 
-                        Move epMove = new Move(myPawn,
-                                new Coordinates(myPawn.getCoordinates().getRank(), myPawn.getCoordinates().getFile()),
-                                target);
-                        epMove.setIsEnPassant(true);
-                        // Note: Capture piece is NULL here because the square we land on is empty!
-                        // We handle the capture logic in doMove
-                        // moves.add(epMove);
+        // Determine where our pawns would be (left and right of the enemy pawn)
+        int[] offsets = { -1, 1 };
 
-                        // 4. Safety Check (En Passant can rarely reveal a check on your King)
-                        if (isMoveSafe(epMove)) { // The isMoveSafe check is the one bugging out!
+        for (int offset : offsets) {
+            int myCol = passingCol + offset;
+
+            // Bounds check
+            if (myCol >= 0 && myCol < 8) {
+                Piece myPawn = grid[passingRow][myCol];
+
+                // Check if a piece exists, is a PAWN, and is OUR colour
+                if (myPawn != null &&
+                        myPawn.getType() == pieceType.PAWN &&
+                        myPawn.getColour() == colour) {
+
+                    // Determine target square (The empty square BEHIND the victim)
+                    // White moves UP (row index decreases), Black moves DOWN (row index increases)
+                    int targetRow = (colour == pieceColour.WHITE) ? passingRow - 1 : passingRow + 1;
+
+                    Coordinates target = new Coordinates(8 - targetRow, (char) ('a' + passingCol));
+
+                    // Create the move
+                    Move epMove = new Move(myPawn, myPawn.getCoordinates(), target);
+                    epMove.setIsEnPassant(true);
+
+                    // PRE-CALCULATE CAPTURE to avoid doMove side-effect reliance logic quirks
+                    // The piece being captured is the one that just moved (lastMove.piece)
+                    // We must ensure this is actually the piece at grid[passingRow][passingCol]
+                    Piece victim = grid[passingRow][passingCol];
+
+                    // Sanity check: The victim must exist and be the enemy colour
+                    if (victim != null && victim.getColour() != colour && victim == lastMove.piece) {
+                        // We safely simulate the move
+                        if (isMoveSafe(epMove)) {
                             moves.add(epMove);
                         }
                     }
