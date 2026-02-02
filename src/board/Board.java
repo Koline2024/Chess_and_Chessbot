@@ -18,14 +18,14 @@ public class Board {
 
     public long zobristHash;
     public int whosInCheck = 0; // 0: No checks. 1: White in check. 2: Black in check.
-    private Stack<Move> history = new Stack<>();
+    public Stack<Move> history = new Stack<>();
     private Move lastMove;
     private Piece[][] grid = new Piece[8][8];
     private ArrayList<Piece> whitePieces = new ArrayList<>();
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        initialise("");
+        initialise("rnbqk1nr/pppp1ppp/8/4p3/1b1PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 1");
         syncPieceLists();
     }
 
@@ -549,7 +549,7 @@ public class Board {
         // TODO: use magic bitboards
         List<Move> legalMoves = new ArrayList<>();
         List<Piece> pieceList = (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
-        for (Piece p : pieceList) {
+        for (Piece p : new ArrayList<>(pieceList)) {
             for (int tRow = 0; tRow < 8; tRow++) {
                 for (int tCol = 0; tCol < 8; tCol++) {
                     // Skip own pieces

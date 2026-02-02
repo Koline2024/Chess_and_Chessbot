@@ -228,13 +228,13 @@ public class Eval {
             case PAWN:
                 return 1;
             case KNIGHT:
-                return 6;
+                return 2;
             case BISHOP:
-                return 5;
+                return 3;
             case ROOK:
-                return 5;
+                return 2;
             case QUEEN:
-                return 5;
+                return 2;
             default:
                 return 0;
         }

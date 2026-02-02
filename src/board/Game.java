@@ -3,7 +3,6 @@ package board;
 import pieces.*;
 import enums.*;
 import java.io.*;
-import java.util.List;
 
 public class Game {
     private Board board;
@@ -59,10 +58,24 @@ public class Game {
                         board.undoMove();
                         continue;
                     }
+                    // List all moves
                     if (input.equals("list")) {
-                        System.out.println(board.getLegalMoves(playerSide));
+                        for (Move move : board.getLegalMoves(playerSide)){
+                            System.out.println(move);
+                        }
+                        System.out.println(board.getLegalMoves(playerSide).size());
                         continue;
                     }
+                    // Get history of moves
+                    if (input.equals("history")) {
+                        if(board.history.isEmpty()){
+                            continue;
+                        }
+                        for (Move move : board.history){
+                            System.out.println(move);
+                        }
+                    }
+
                     // Throw an IOexception if input is invalid
                     processInput(input, playerSide);
                     gameStateWhite = board.getGameState(pieceColour.WHITE);
@@ -203,7 +216,7 @@ public class Game {
 
     private void handleAImove() {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 2, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, 3, isWhiteTurn);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);

@@ -78,5 +78,6 @@ public class Move {
     @Override
     public String toString(){
         return piece.getSymbol() + ": " + from + " to " + to; 
+
     }
 }
