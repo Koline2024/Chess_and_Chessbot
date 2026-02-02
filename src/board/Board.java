@@ -70,110 +70,157 @@ public class Board {
 
     public void doMove(Move move) {
         Piece p = move.piece;
+        int colourIdx = (p.getColour() == pieceColour.WHITE) ? 0 : 1;
+        int enemyIdx = 1 - colourIdx;
 
-        // Update history
-        move.setPieceWasMovedBefore(p.hasMoved());
-        move.setWasFirstMove(!p.hasMoved());
+        // 1. XOR OUT CURRENT STATE
+        zobristHash ^= Zobrist.turn;
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
 
+        // Clear old EP hash from the PREVIOUS move
         if (!history.isEmpty()) {
             Move prev = history.peek();
-            if (prev.isEnPassant()) {
-                int file = prev.getMoveTo().getCol();
-                zobristHash ^= Zobrist.passantFiles[file];
+            if (prev.piece.getType() == pieceType.PAWN && Math.abs(prev.from.getRow() - prev.to.getRow()) == 2) {
+                zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
             }
         }
 
-        // Zobrist update
-        int colour = 0;
-        int enemyColour = 1;
-        if (p.getColour() == pieceColour.WHITE) {
-            colour = 0;
-            enemyColour = 1;
-        } else {
-            colour = 1;
-            enemyColour = 0;
-        }
-        int type = p.getType().ordinal();
-        zobristHash ^= Zobrist.pieces[colour][type][move.getMoveFrom().getIndex()]; // Zobrist from
+        // 2. PIECE MOVEMENT & HASHING
+        // Hash out moving piece from start
+        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.from.getIndex()];
 
-        if (p.getType() == pieceType.PAWN) {
-            Pawn pawn = (Pawn) p;
-            boolean jumpedTwo = Math.abs(move.getMoveTo().getRow() - move.getMoveFrom().getRow()) == 2;
-            pawn.setJustMovedTwo(jumpedTwo);
-        }
+        if (move.isCastling()) {
+            handleCastling(move, colourIdx, true);
+        } else if (move.isEnPassant()) {
+            // En Passant Victim is NOT at move.to
+            int offset = (p.getColour() == pieceColour.WHITE) ? 1 : -1;
+            int vRow = move.to.getRow() + offset;
+            Piece epVictom = grid[vRow][move.to.getCol()];
+            move.setCapturedPiece(epVictom);
 
-        move.setCapturedPiece(getPiece(move.getMoveTo()));
-        if (move.getCapturePiece() != null) {
-            removePieceFromSystem(move.getCapturePiece());
-            zobristHash ^= Zobrist.pieces[enemyColour][move.getCapturePiece().getType().ordinal()][move.getMoveTo()
-                    .getIndex()];
+            zobristHash ^= Zobrist.pieces[enemyIdx][pieceType.PAWN.ordinal()][epVictom.getCoordinates().getIndex()];
+            grid[vRow][move.to.getCol()] = null;
+            removePieceFromSystem(epVictom);
+        } else if (grid[move.to.getRow()][move.to.getCol()] != null) {
+            // Standard Capture
+            Piece victim = grid[move.to.getRow()][move.to.getCol()];
+            move.setCapturedPiece(victim);
+            zobristHash ^= Zobrist.pieces[enemyIdx][victim.getType().ordinal()][move.to.getIndex()];
+            removePieceFromSystem(victim);
         }
 
-        grid[move.getMoveFrom().getRow()][move.getMoveFrom().getCol()] = null;
-        setPiece(move.getMoveTo(), p);
-        p.setCoordinates(move.getMoveTo());
+        // Physically move the piece
+        grid[move.from.getRow()][move.from.getCol()] = null;
+        setPiece(move.to, p);
+        move.setPieceWasMovedBefore(p.hasMoved());
         p.setMoved(true);
 
-        zobristHash ^= Zobrist.pieces[colour][type][move.getMoveTo().getIndex()]; // Zobrist to
+        // Hash in moving piece at destination
+        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
 
-        // Castling rook swap
-        if (move.isCastling()) {
-            int row = move.getMoveFrom().getRow();
-            // Kingside vs Queenside ternary
-            int rookStartCol = (move.getMoveTo().getCol() == 6) ? 7 : 0;
-            int rookEndCol = (move.getMoveTo().getCol() == 6) ? 5 : 3;
-
-            Rook rook = (Rook) grid[row][rookStartCol];
-            grid[row][rookStartCol] = null; // Clear corner
-            setPiece(new Coordinates(move.getMoveTo().getRank(), (char) ('a' + rookEndCol)), rook);
-            rook.setMoved(true);
-        }
-        // Hard code castling hasMovedBefore booleans
-        if (move.piece.getType() == pieceType.ROOK) {
-            // Casting because I am bad at structuring and also lazy
-            Rook rook = (Rook) p;
-            if (rook.hasMoved() == false) {
-                rook.setMoved(true);
-            }
-        }
-
-        if (move.piece.getType() == pieceType.KING) {
-            // Casting because I am bad at structuring and also lazy
-            King king = (King) p;
-            if (king.hasMoved() == false) {
-                king.setMoved(true);
-            }
-        }
-
-        // Handle en passant with zobrist
-        if (move.isEnPassant()) {
-            // The pawn we are capturing is BEHIND us
-            int offset = (p.getColour() == pieceColour.WHITE) ? 1 : -1;
-            int r = move.getMoveTo().getRow() + offset;
-            int c = move.getMoveTo().getCol();
-
-            Piece victim = grid[r][c];
-            if (victim != null) {
-                move.setCapturedPiece(victim);
-                removePieceFromSystem(victim);
-                grid[r][c] = null; // Remove from board
-
-                // Zobrist: Remove the captured pawn
-                zobristHash ^= Zobrist.pieces[enemyColour][pieceType.PAWN.ordinal()][victim.getCoordinates()
-                        .getIndex()];
-            }
-        }
-
+        // 3. SPECIAL STATE: NEW EP OPPORTUNITY
         if (p.getType() == pieceType.PAWN && Math.abs(move.from.getRow() - move.to.getRow()) == 2) {
-            int file = move.to.getCol();
-            zobristHash ^= Zobrist.passantFiles[file]; // Add new EP opportunity
+            zobristHash ^= Zobrist.passantFiles[move.to.getCol()];
         }
 
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
-        zobristHash ^= Zobrist.turn;
-        lastMove = move;
         history.push(move);
+    }
+
+    public void undoMove() {
+        if (history.isEmpty())
+            return;
+        Move last = history.pop();
+        Piece p = last.piece;
+        int colourIdx = (p.getColour() == pieceColour.WHITE) ? 0 : 1;
+        int enemyIdx = 1 - colourIdx;
+
+        zobristHash ^= Zobrist.turn;
+        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+
+        // 1. REMOVE EP HASH CREATED BY THIS MOVE
+        if (p.getType() == pieceType.PAWN && Math.abs(last.from.getRow() - last.to.getRow()) == 2) {
+            zobristHash ^= Zobrist.passantFiles[last.to.getCol()];
+        }
+
+        // 2. REVERSE PIECE MOVEMENT
+        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.to.getIndex()];
+        grid[last.to.getRow()][last.to.getCol()] = null;
+        setPiece(last.from, p);
+        p.setMoved(last.getPieceWasMovedBefore());
+        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.from.getIndex()];
+
+        // 3. RESTORE CAPTURED PIECES
+        Piece victim = last.getCapturedPiece();
+        if (victim != null) {
+            addPieceToSystem(victim);
+            if (last.isEnPassant()) {
+                // Restore to the pawn's square, not the move's 'to' square
+                grid[victim.getCoordinates().getRow()][victim.getCoordinates().getCol()] = victim;
+                zobristHash ^= Zobrist.pieces[enemyIdx][pieceType.PAWN.ordinal()][victim.getCoordinates().getIndex()];
+            } else {
+                // Standard capture: put victim back on 'to' square
+                grid[last.to.getRow()][last.to.getCol()] = victim;
+                zobristHash ^= Zobrist.pieces[enemyIdx][victim.getType().ordinal()][last.to.getIndex()];
+            }
+        }
+
+        if (last.isCastling())
+            handleCastling(last, colourIdx, false);
+
+        // 4. RESTORE PREVIOUS EP HASH
+        if (!history.isEmpty()) {
+            Move prev = history.peek();
+            if (prev.piece.getType() == pieceType.PAWN && Math.abs(prev.from.getRow() - prev.to.getRow()) == 2) {
+                zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
+            }
+        }
+
+        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+    }
+
+    /**
+     * Handles the Rook's movement and Zobrist hashing during castling.
+     * 
+     * @param move      The castling move
+     * @param colourIdx 0 for White, 1 for Black
+     * @param isDoing   True if executing doMove, False if executing undoMove
+     */
+    private void handleCastling(Move move, int colourIdx, boolean isDoing) {
+        int row = move.from.getRow();
+        boolean isKingside = (move.to.getCol() == 6);
+
+        // Rook positions:
+        // Kingside: starts at col 7, ends at col 5
+        // Queenside: starts at col 0, ends at col 3
+        int rookStartCol = isKingside ? 7 : 0;
+        int rookEndCol = isKingside ? 5 : 3;
+
+        // During doMove: move from start to end. During undoMove: move from end to
+        // start.
+        int fromCol = isDoing ? rookStartCol : rookEndCol;
+        int toCol = isDoing ? rookEndCol : rookStartCol;
+
+        Piece rook = grid[row][fromCol];
+
+        // Safety check - if the rook is missing, your move generator is broken!
+        if (rook == null || rook.getType() != pieceType.ROOK)
+            return;
+
+        // 1. Hash out the Rook from its current position
+        zobristHash ^= Zobrist.pieces[colourIdx][pieceType.ROOK.ordinal()][rook.getCoordinates().getIndex()];
+
+        // 2. Physically move the Rook
+        grid[row][fromCol] = null;
+        // We reuse the move's rank to calculate the new coordinate
+        Coordinates newRookCoords = new Coordinates(move.from.getRank(), (char) ('a' + toCol));
+        setPiece(newRookCoords, rook);
+
+        // 3. Update Rook state (moved status)
+        rook.setMoved(isDoing);
+
+        // 4. Hash the Rook into its new position
+        zobristHash ^= Zobrist.pieces[colourIdx][pieceType.ROOK.ordinal()][newRookCoords.getIndex()];
     }
 
     private void setPiece(Coordinates c, Piece p) {
@@ -459,70 +506,6 @@ public class Board {
         System.out.println("Pawn promoted to " + toPiece.getSymbol());
     }
 
-    public void undoMove() {
-        if (history.isEmpty()) {
-            return;
-        }
-        Move last = history.pop();
-        if (last.getCapturePiece() != null) {
-            addPieceToSystem(last.getCapturePiece());
-        }
-
-        last.piece.setMoved(last.getPieceWasMovedBefore());
-        // Put the piece back
-        grid[last.from.getRow()][last.from.getCol()] = last.piece;
-        last.piece.setCoordinates(last.from);
-
-        if (last.isEnPassant()) {
-            grid[last.to.getRow()][last.to.getCol()] = null;
-            Piece captured = last.getCapturePiece();
-            if (captured != null) {
-                int offset = (last.piece.getColour() == pieceColour.WHITE) ? 1 : -1;
-                int r = last.to.getRow() + offset;
-                int c = last.to.getCol();
-
-                grid[r][c] = captured;
-                captured.setCoordinates(new Coordinates(8 - r, (char) ('a' + c)));
-                addPieceToSystem(captured); // Add back to list captured.setCoordinates(new Coordinates(8 - r, (char)
-                                            // ('a' + c)));
-            }
-        } else if (last.isCastling()) {
-            int row = last.getMoveFrom().getRow();
-            int rookStartCol = (last.getMoveTo().getCol() == 6) ? 7 : 0;
-            int rookEndCol = (last.getMoveTo().getCol() == 6) ? 5 : 3;
-
-            if (grid[row][rookEndCol] != null) {
-                Rook rook = (Rook) grid[row][rookEndCol];
-                grid[row][rookEndCol] = null; // Clear square
-                setPiece(new Coordinates(last.getMoveFrom().getRank(), (char) ('a' + rookStartCol)), rook);
-                rook.setMoved(false);
-
-            }
-        } else {
-            // Restore the captured piece (or null)
-            grid[last.to.getRow()][last.to.getCol()] = last.getCapturePiece();
-            if (last.getCapturePiece() != null) {
-                last.getCapturePiece().setCoordinates(last.to);
-            }
-        }
-
-        if (last.wasFirstMove()) {
-            last.piece.setMoved(false);
-            if (last.piece.getType() == pieceType.PAWN) {
-                ((Pawn) last.piece).setCanMoveTwo(true);
-            }
-        }
-
-        if(last.piece.getType() == pieceType.PAWN){
-            Pawn p = (Pawn) last.piece;
-            if(last.getPieceWasMovedBefore() == false){
-                p.setCanMoveTwo(true);
-            }
-            p.setCanMoveTwo(false);
-            
-        }
-    }
-
     public List<Piece> getPieceList(pieceColour colour) {
         return (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
     }
@@ -699,6 +682,7 @@ public class Board {
 
                     // Sanity check: The victim must exist and be the enemy colour
                     if (victim != null && victim.getColour() != colour && victim == lastMove.piece) {
+                        epMove.setCapturedPiece(victim);
                         // We safely simulate the move
                         if (isMoveSafe(epMove)) {
                             moves.add(epMove);

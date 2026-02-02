@@ -54,7 +54,7 @@ public class Move {
         isEnPassant = x;
     }
 
-    public Piece getCapturePiece(){
+    public Piece getCapturedPiece(){
         return capturedPiece;
     }
 

@@ -170,7 +170,7 @@ public class Search {
         }
 
         List<Move> moves = board.getLegalMoves(isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK);
-        moves.removeIf(m -> m.getCapturePiece() == null); // Filter for only captures
+        moves.removeIf(m -> m.getCapturedPiece() == null); // Filter for only captures
         sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
@@ -210,7 +210,7 @@ public class Search {
     private int scoreMove(Move move, Board board) {
         int score = 0;
         Piece actor = move.piece;
-        Piece victim = move.getCapturePiece(); // MVV LVA
+        Piece victim = move.getCapturedPiece(); // MVV LVA
         if (victim != null) {
             score = (materialValues.get(victim.getType()) * 10) - materialValues.get(actor.getType());
             score += 10000;

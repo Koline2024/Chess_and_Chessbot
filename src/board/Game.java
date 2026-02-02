@@ -3,6 +3,7 @@ package board;
 import pieces.*;
 import enums.*;
 import java.io.*;
+import java.util.List;
 
 public class Game {
     private Board board;
@@ -202,7 +203,7 @@ public class Game {
 
     private void handleAImove() {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 4, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, 2, isWhiteTurn);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);
