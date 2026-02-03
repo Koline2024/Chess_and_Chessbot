@@ -112,8 +112,16 @@ public class Board {
     zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
     
     // Handle Promotion Hash
-    if (move.isPromotion()) {
-        // ... (your existing promotion logic) ...
+        int promotionRank = (move.piece.getColour() == pieceColour.WHITE) ? 8 : 1;
+        if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRank() == promotionRank) {
+            Queen q = new Queen(move.piece.getColour(), null);
+            promote(move.getMoveTo(), q);
+            move.setPromotion(true);
+            int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
+            zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][move.getMoveTo().getIndex()];
+            zobristHash ^= Zobrist.pieces[c][q.getType().ordinal()][move.getMoveTo().getIndex()];
+
+
     }
 
     // NEW EP possibility?
