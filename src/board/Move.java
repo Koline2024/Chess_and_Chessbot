@@ -9,6 +9,8 @@ public class Move {
     public final Piece piece;
     public final Coordinates from;
     public final Coordinates to;
+    public static long[] oldCastlingRights = new long[16];
+
 
     // Move identifiers
     private Piece capturedPiece;
@@ -68,6 +70,14 @@ public class Move {
 
     public void setWasFirstMove(boolean x){
         wasFirstMove = x;
+    }
+
+    public long[] getOldCastlingRights(){
+        return oldCastlingRights;
+    }
+
+    public void setOldCastlingRights(long[] a){
+        oldCastlingRights = a;
     }
 
     public boolean wasPromotion(){

@@ -39,7 +39,7 @@ public class Search {
             }
         }
         long time = System.currentTimeMillis();
-        System.out.println("Move " + overallBestMove + " found in " + (time - startTime)/1000 + " seconds");
+        System.out.println("Move " + overallBestMove + " found in " + (time - startTime) / 1000 + " seconds");
         return overallBestMove;
     }
 
@@ -92,43 +92,47 @@ public class Search {
         Move ttBestMove = (ttEntry != null) ? ttEntry.bestMove : null;
         sortMoves(moves, board);
         if (ttBestMove != null) {
-            moves.add(0, ttBestMove); // Add the best TT move to the front
+            // moves.remove(ttBestMove);
+            // moves.add(0, ttBestMove); // Add the best TT move to the front
         }
 
         int bestScore = isWhiteTurn ? -inf : inf;
         Move bestMove = null;
         for (Move m : moves) {
-            board.doMove(m);
-            int extension = 0;
-            // If a king is in check (interesting position), extend search by 1
-            for(Piece p : board.getPieceList(turn)){
-                if(p.getType() == pieceType.KING){
-                    if(board.isSquareAttacked(p.getCoordinates(), p.getColour())){
-                        extension = 1;
+            try {
+                board.doMove(m);
+                int extension = 0;
+                // If a king is in check (interesting position), extend search by 1
+                for (Piece p : board.getPieceList(turn)) {
+                    if (p.getType() == pieceType.KING) {
+                        if (board.isSquareAttacked(p.getCoordinates(), p.getColour())) {
+                            extension = 1;
+                        }
                     }
                 }
-            }
 
-            int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
-            board.undoMove();
-            if (isWhiteTurn) {
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = m;
+                int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
+                if (isWhiteTurn) {
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = m;
+                    }
+                    alpha = Math.max(alpha, bestScore);
+                } else {
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestMove = m;
+                    }
+                    beta = Math.min(beta, bestScore);
                 }
-                alpha = Math.max(alpha, bestScore);
-            } else {
-                if (score < bestScore) {
-                    bestScore = score;
-                    bestMove = m;
+                if (alpha >= beta) {
+                    break; // Snip
                 }
-                beta = Math.min(beta, bestScore);
-            }
-            if (alpha >= beta) {
-                break; // Snip
+            } finally {
+                board.undoMove();
             }
         }
-        
+
         int flag;
         if (bestScore <= originalAlpha) {
             flag = TranspositionTable.upperBound;
@@ -174,23 +178,26 @@ public class Search {
         sortMoves(moves, board);
         for (Move m : moves) {
             board.doMove(m);
-            int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
-            board.undoMove();
+            try {
+                int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
 
-            if (isWhiteTurn) {
-                if (score >= beta) {
-                    return beta;
+                if (isWhiteTurn) {
+                    if (score >= beta) {
+                        return beta;
+                    }
+                    if (score > alpha) {
+                        alpha = score;
+                    }
+                } else {
+                    if (score <= alpha) {
+                        return alpha;
+                    }
+                    if (score < beta) {
+                        beta = score;
+                    }
                 }
-                if (score > alpha) {
-                    alpha = score;
-                }
-            } else {
-                if (score <= alpha) {
-                    return alpha;
-                }
-                if (score < beta) {
-                    beta = score;
-                }
+            } finally {
+                board.undoMove();
             }
 
         }

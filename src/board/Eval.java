@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.List;
 
 public class Eval {
+    //TODO: Edit positional eval to penalise pins 
 
     public double phase;
 
