@@ -129,8 +129,8 @@ public class Eval {
         // cache commonly requested lists/positions to avoid repeated lookups
         List<Piece> whitePieces = board.getPieceList(pieceColour.WHITE);
         List<Piece> blackPieces = board.getPieceList(pieceColour.BLACK);
-        List<Move> whiteMoves = board.getLegalMoves(pieceColour.WHITE);
-        List<Move> blackMoves = board.getLegalMoves(pieceColour.BLACK);
+        //List<Move> whiteMoves = board.getLegalMoves(pieceColour.WHITE);
+        //List<Move> blackMoves = board.getLegalMoves(pieceColour.BLACK);
         Coordinates whiteKing = board.findKing(pieceColour.WHITE);
         Coordinates blackKing = board.findKing(pieceColour.BLACK);
         phase = getGamePhase(whitePieces, blackPieces); // 1 is opening, 0 is endgame
@@ -140,7 +140,7 @@ public class Eval {
         totalScore += deltaMaterial;
         totalScore += evalPST(whitePieces, blackPieces);
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
-        totalScore += evalMobility(whiteMoves, blackMoves);
+        //totalScore += evalMobility(whiteMoves, blackMoves);
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
         totalScore += evalPositionals(board, whitePieces, blackPieces);
         totalScore += evalOpening(whitePieces, blackPieces);
@@ -418,7 +418,7 @@ public class Eval {
                     Piece p2 = board.getPieceAt(i, p.getCoordinates().getCol());
                     if (p2 != null) {
                         if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
-                            positionalScore -= 30; // Penalise doubled pawns or tripled pawns
+                            positionalScore += 30; // Penalise doubled pawns or tripled pawns
                         }
                     }
                 }

@@ -25,7 +25,7 @@ public class Board {
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        initialise("rnbqk1nr/pppp1ppp/8/4p3/1b1PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 1");
+        initialise("8/3k2P1/8/8/8/4K3/p7/8 w - - 0 1");
         syncPieceLists();
     }
 
@@ -123,6 +123,18 @@ public class Board {
             zobristHash ^= Zobrist.passantFiles[move.to.getCol()];
         }
 
+        // 4. HANDLE PROMOTIONS:
+        int promotionRank = (move.piece.getColour() == pieceColour.WHITE) ? 8 : 1;
+        if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRank() == promotionRank) {
+            Queen q = new Queen(move.piece.getColour(), null);
+            promote(move.getMoveTo(), q);
+            move.setPromotion(true);
+            int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
+            zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][move.getMoveTo().getIndex()];
+            zobristHash ^= Zobrist.pieces[c][q.getType().ordinal()][move.getMoveTo().getIndex()];
+
+        }
+
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
         history.push(move);
     }
@@ -143,40 +155,53 @@ public class Board {
             zobristHash ^= Zobrist.passantFiles[last.to.getCol()];
         }
 
-        // 2. REVERSE PIECE MOVEMENT
-        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.to.getIndex()];
-        grid[last.to.getRow()][last.to.getCol()] = null;
-        setPiece(last.from, p);
-        p.setMoved(last.getPieceWasMovedBefore());
-        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.from.getIndex()];
+        // 1.5 IF WAS PROMOTION, REMOVE PIECE
+        if (last.wasPromotion()) {
+            Piece promotedPiece = grid[last.to.getRow()][last.to.getCol()];
+            zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
+            removePieceFromSystem(promotedPiece);
+            grid[last.to.getRow()][last.to.getCol()] = null;
+            setPiece(last.from, p);
+            addPieceToSystem(p);
+            zobristHash ^= Zobrist.pieces[colourIdx][pieceType.PAWN.ordinal()][last.from.getIndex()];
+        } else {
+            // 2. REVERSE PIECE MOVEMENT
+            zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.to.getIndex()];
+            grid[last.to.getRow()][last.to.getCol()] = null;
+            setPiece(last.from, p);
+            p.setMoved(last.getPieceWasMovedBefore());
+            zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.from.getIndex()];
 
-        // 3. RESTORE CAPTURED PIECES
-        Piece victim = last.getCapturedPiece();
-        if (victim != null) {
-            addPieceToSystem(victim);
-            if (last.isEnPassant()) {
-                // Restore to the pawn's square, not the move's 'to' square
-                grid[victim.getCoordinates().getRow()][victim.getCoordinates().getCol()] = victim;
-                zobristHash ^= Zobrist.pieces[enemyIdx][pieceType.PAWN.ordinal()][victim.getCoordinates().getIndex()];
-            } else {
-                // Standard capture: put victim back on 'to' square
-                grid[last.to.getRow()][last.to.getCol()] = victim;
-                zobristHash ^= Zobrist.pieces[enemyIdx][victim.getType().ordinal()][last.to.getIndex()];
+            // 3. RESTORE CAPTURED PIECES
+            Piece victim = last.getCapturedPiece();
+            if (victim != null) {
+                addPieceToSystem(victim);
+                if (last.isEnPassant()) {
+                    // Restore to the pawn's square, not the move's 'to' square
+                    grid[victim.getCoordinates().getRow()][victim.getCoordinates().getCol()] = victim;
+                    zobristHash ^= Zobrist.pieces[enemyIdx][pieceType.PAWN.ordinal()][victim.getCoordinates()
+                            .getIndex()];
+                } else {
+                    // Standard capture: put victim back on 'to' square
+                    grid[last.to.getRow()][last.to.getCol()] = victim;
+                    zobristHash ^= Zobrist.pieces[enemyIdx][victim.getType().ordinal()][last.to.getIndex()];
+                }
             }
+
+            if (last.isCastling())
+                handleCastling(last, colourIdx, false);
+
+            // 4. RESTORE PREVIOUS EP HASH
+            if (!history.isEmpty()) {
+                Move prev = history.peek();
+                if (prev.piece.getType() == pieceType.PAWN && Math.abs(prev.from.getRow() - prev.to.getRow()) == 2) {
+                    zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
+                }
+            }
+
+            zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
         }
 
-        if (last.isCastling())
-            handleCastling(last, colourIdx, false);
-
-        // 4. RESTORE PREVIOUS EP HASH
-        if (!history.isEmpty()) {
-            Move prev = history.peek();
-            if (prev.piece.getType() == pieceType.PAWN && Math.abs(prev.from.getRow() - prev.to.getRow()) == 2) {
-                zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
-            }
-        }
-
-        zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
     }
 
     /**

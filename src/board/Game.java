@@ -61,6 +61,7 @@ public class Game {
                     // List all moves
                     if (input.equals("list")) {
                         for (Move move : board.getLegalMoves(playerSide)){
+                            //System.out.print("\"" + move + "\", ");
                             System.out.println(move);
                         }
                         System.out.println(board.getLegalMoves(playerSide).size());
@@ -140,7 +141,7 @@ public class Game {
                     }
                     int rank = move.getMoveTo().getRank();
                     if (rank == 1 || rank == 8) {
-                        handlePromotion(move.getMoveTo(), move.piece.getColour());
+                        //handlePromotion(move.getMoveTo(), move.piece.getColour());
                     }
                 }
                 isWhiteTurn = !isWhiteTurn;
@@ -153,35 +154,33 @@ public class Game {
 
     }
 
-    private void handlePromotion(Coordinates coords, pieceColour colour) {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("Choose promoted piece: Q, R, B, N");
-        try {
-            String choice = reader.readLine();
-            Piece newPiece;
-            switch (choice) {
-                case "R":
-                    newPiece = new Rook(colour, coords);
-                    break;
-                case "B":
-                    newPiece = new Bishop(colour, coords);
-                    break;
-                case "N":
-                    newPiece = new Knight(colour, coords);
-                    break;
-                default:
-                    newPiece = new Queen(colour, coords);
-            }
-            board.promote(coords, newPiece);
-            int c = (colour == pieceColour.WHITE) ? 0 : 1;
-            board.zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
-            board.zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
-
-
-        } catch (Exception e) {
-            System.out.println("IO Exception! ");
-        }
-    }
+    // private void handlePromotion(Coordinates coords, pieceColour colour) {
+    //     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    //     System.out.println("Choose promoted piece: Q, R, B, N");
+    //     try {
+    //         String choice = reader.readLine();
+    //         Piece newPiece;
+    //         switch (choice) {
+    //             case "R":
+    //                 newPiece = new Rook(colour, coords);
+    //                 break;
+    //             case "B":
+    //                 newPiece = new Bishop(colour, coords);
+    //                 break;
+    //             case "N":
+    //                 newPiece = new Knight(colour, coords);
+    //                 break;
+    //             default:
+    //                 newPiece = new Queen(colour, coords);
+    //         }
+    //         board.promote(coords, newPiece);
+    //         int c = (colour == pieceColour.WHITE) ? 0 : 1;
+    //         board.zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
+    //         board.zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
+    //     } catch (Exception e) {
+    //         System.out.println("IO Exception! ");
+    //     }
+    // }
 
     private void handleCastling(String type) {
         int rank = isWhiteTurn ? 1 : 8; // White is Rank 1, Black is Rank 8
@@ -216,17 +215,17 @@ public class Game {
 
     private void handleAImove() {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 3, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, 4, isWhiteTurn);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);
             // Auto-queen promotion for chessbot
-            if (bestMove.piece.getType() == pieceType.PAWN) {
-                int r = bestMove.getMoveTo().getRank();
-                if (r == 1 || r == 8) {
-                    board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(), bestMove.getMoveTo()));
-                }
-            }
+            // if (bestMove.piece.getType() == pieceType.PAWN) {
+            //     int r = bestMove.getMoveTo().getRank();
+            //     if (r == 1 || r == 8) {
+            //         board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(), bestMove.getMoveTo()));
+            //     }
+            // }
             isWhiteTurn = !isWhiteTurn;
         } else {
             System.out.println("Chessbot has no legal moves. ");

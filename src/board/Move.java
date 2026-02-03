@@ -70,6 +70,14 @@ public class Move {
         wasFirstMove = x;
     }
 
+    public boolean wasPromotion(){
+        return isPromotion;
+    }
+
+    public void setPromotion(boolean x){
+        isPromotion = x;
+    }
+
     public void setPieceWasMovedBefore(boolean val) { this.pieceWasMovedBefore = val; }
     
     public boolean getPieceWasMovedBefore() { return pieceWasMovedBefore; }
@@ -78,6 +86,6 @@ public class Move {
     @Override
     public String toString(){
         return piece.getSymbol() + ": " + from + " to " + to; 
-
+        //return from + "" + to;
     }
 }
