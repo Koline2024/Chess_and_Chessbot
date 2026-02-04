@@ -536,7 +536,6 @@ public class Board {
 
         setPiece(coords, toPiece); // Put queen on grid
         addPieceToSystem(toPiece); // Put queen in the list;
-        System.out.println("Pawn promoted to " + toPiece.getSymbol());
     }
 
     public List<Piece> getPieceList(pieceColour colour) {
@@ -663,7 +662,6 @@ public class Board {
         }
     }
 
-    // TODO: Fix this damn thing
     private void addEnPassantMoves(List<Move> moves, pieceColour colour) {
         if (history.isEmpty()) {
             return;

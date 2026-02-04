@@ -3,12 +3,15 @@ package board;
 import pieces.*;
 import enums.*;
 import java.io.*;
+import java.util.List;
 
 public class Game {
     private Board board;
     private boolean isWhiteTurn;
     private Eval eval = new Eval();
     private Search AI;
+    private List<Move> movesPlayer;
+
 
     public Game() {
         this.board = new Board();
@@ -21,6 +24,7 @@ public class Game {
         String gameStateBlack = board.getGameState(pieceColour.BLACK);
         String userInput = "";
         pieceColour playerSide = null;
+        int depth = 5; // 5 plys by default
         AI = new Search();
         board.initZobrist(isWhiteTurn);
         while (playerSide == null) {
@@ -39,6 +43,14 @@ public class Game {
             }
 
         }
+
+        System.out.println("What depth should bot search to?");
+        try{
+            depth = Integer.parseInt(keyboard.readLine());
+        }catch (Exception e){
+            System.out.println("Not a number!");
+        }
+
 
         while (gameStateWhite.equals("PLAYING") && gameStateBlack.equals("PLAYING")) {
             board.printBoard(playerSide);
@@ -86,7 +98,7 @@ public class Game {
                     System.out.println("Invalid move! ");
                 }
             } else {
-                handleAImove();
+                handleAImove(depth);
             }
             gameStateWhite = board.getGameState(pieceColour.WHITE);
             gameStateBlack = board.getGameState(pieceColour.BLACK);
@@ -104,6 +116,7 @@ public class Game {
     }
 
     private void processInput(String input, pieceColour side) {
+        movesPlayer = board.getLegalMoves(side);
         // Hard code castling
         if (input.equals("O-O") || input.equals("O-O-O")) {
             handleCastling(input);
@@ -133,7 +146,8 @@ public class Game {
                 return;
             }
             Move move = new Move(p, initCoords, finalCoords);
-            if (board.isMoveLegal(move)) {
+            
+            if (movesPlayer.contains(move)) { // TODO: marker this is where i last edited
                 board.doMove(move);
                 if (move.piece.getType() == pieceType.PAWN) {
                     if(((Pawn) move.piece).getJustMovedTwo() == true){
@@ -213,9 +227,9 @@ public class Game {
         }
     }
 
-    private void handleAImove() {
+    private void handleAImove(int depth) {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, 4, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, depth, isWhiteTurn);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);

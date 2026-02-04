@@ -4,13 +4,13 @@
 package board;
 
 import pieces.Piece;
+import java.util.Objects;
 
 public class Move {
     public final Piece piece;
     public final Coordinates from;
     public final Coordinates to;
     public static long[] oldCastlingRights = new long[16];
-
 
     // Move identifiers
     private Piece capturedPiece;
@@ -22,80 +22,108 @@ public class Move {
     // Memory
     private boolean pieceWasMovedBefore;
 
-    public Move(Piece piece, Coordinates from, Coordinates to){
+    public Move(Piece piece, Coordinates from, Coordinates to) {
         this.piece = piece;
         this.from = from;
         this.to = to;
     }
 
-    public Coordinates getMoveTo(){
+    public Coordinates getMoveTo() {
         return to;
     }
 
-    public Coordinates getMoveFrom(){
+    public Coordinates getMoveFrom() {
         return from;
     }
 
-    public boolean isCastling(){
+    public boolean isCastling() {
         return isCastling;
     }
 
-    public void setIsCastling(boolean x){
+    public void setIsCastling(boolean x) {
         isCastling = x;
     }
 
-    public boolean isPromotion(){
+    public boolean isPromotion() {
         return isPromotion;
     }
 
-    public boolean isEnPassant(){
+    public boolean isEnPassant() {
         return isEnPassant;
     }
-    
-    public void setIsEnPassant(boolean x){
+
+    public void setIsEnPassant(boolean x) {
         isEnPassant = x;
     }
 
-    public Piece getCapturedPiece(){
+    public Piece getCapturedPiece() {
         return capturedPiece;
     }
 
-    public void setCapturedPiece(Piece p){
+    public void setCapturedPiece(Piece p) {
         capturedPiece = p;
     }
-    
-    public boolean wasFirstMove(){
+
+    public boolean wasFirstMove() {
         return wasFirstMove;
     }
 
-    public void setWasFirstMove(boolean x){
+    public void setWasFirstMove(boolean x) {
         wasFirstMove = x;
     }
 
-    public long[] getOldCastlingRights(){
+    public long[] getOldCastlingRights() {
         return oldCastlingRights;
     }
 
-    public void setOldCastlingRights(long[] a){
+    public void setOldCastlingRights(long[] a) {
         oldCastlingRights = a;
     }
 
-    public boolean wasPromotion(){
+    public boolean wasPromotion() {
         return isPromotion;
     }
 
-    public void setPromotion(boolean x){
+    public void setPromotion(boolean x) {
         isPromotion = x;
     }
 
-    public void setPieceWasMovedBefore(boolean val) { this.pieceWasMovedBefore = val; }
-    
-    public boolean getPieceWasMovedBefore() { return pieceWasMovedBefore; }
+    @Override
+    public boolean equals(Object m) {
+        if (this == m) {
+            return true;
+        }
 
+        if (m == null) {
+            return false;
+        }
+
+        if (!(m instanceof Move)) {
+            return false;
+        }
+
+        Move move = (Move) m;
+        return (move.piece.getType() == this.piece.getType()
+                && move.getMoveFrom().getIndex() == this.getMoveFrom().getIndex()
+                && move.getMoveTo().getIndex() == this.getMoveTo().getIndex());
+    }
 
     @Override
-    public String toString(){
-        return piece.getSymbol() + ": " + from + " to " + to; 
-        //return from + "" + to;
+    public int hashCode(){
+        return Objects.hash(piece.getType(), from.getIndex(), to.getIndex());
+    }
+
+    public void setPieceWasMovedBefore(boolean val) {
+        this.pieceWasMovedBefore = val;
+    }
+
+    public boolean getPieceWasMovedBefore() {
+        return pieceWasMovedBefore;
+    }
+
+    @Override
+    public String toString() {
+        return piece.getSymbol() + ": " + from + " to " + to;
+        // return from + "" + to;
     }
 }
