@@ -54,6 +54,21 @@ public class TranspositionTable {
             entries[i] = null;
         }
     }
+
+    /**
+     * Returns how filled the transposition table is (percentage).
+     * @return
+     */
+    public double filled(){
+        int count = 0;
+        for (int i = 0; i < entries.length; i++){
+            if (entries[i] != null){
+                count ++;
+            }
+        }
+
+        return (double) count / entries.length * 100;
+    }
     
 
 

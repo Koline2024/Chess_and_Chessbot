@@ -4,6 +4,8 @@ import enums.pieceColour;
 import enums.pieceType;
 import pieces.Piece;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +25,13 @@ public class Search {
     private Eval evaluator = new Eval();
     private static final int inf = 1000000;
     private static final int checkmate = 900000;
-    private static final TranspositionTable tTable = new TranspositionTable(1000); // I have 16 gb ram lol
+    public final TranspositionTable tTable = new TranspositionTable(1000); // I have 16 gb ram lol
 
     public Move findBestMove(Board board, int maxDepth, boolean isWhiteTurn) {
         long startTime = System.currentTimeMillis();
-        Move overallBestMove = null;
+        Move overallBestMove = null;   
+        Instant start = Instant.now();
+        Duration limit = Duration.ofMillis(1000);
         // Iterative deepening
         for (int depth = 1; depth < maxDepth; depth++) {
             int alpha = -inf;
@@ -36,6 +40,10 @@ public class Search {
             TranspositionTable.Entry rootEntry = tTable.get(board.zobristHash);
             if (rootEntry != null && rootEntry.bestMove != null) {
                 overallBestMove = rootEntry.bestMove;
+            }
+            Instant elapsed = Instant.now();
+            if (Duration.between(start, elapsed).toMillis() >= 0.8*limit.toMillis()){
+                break;
             }
         }
         long time = System.currentTimeMillis();
@@ -90,7 +98,6 @@ public class Search {
         }
 
         Move ttBestMove = (ttEntry != null) ? ttEntry.bestMove : null;
-        sortMoves(moves, board);
         if (ttBestMove != null) {
             // moves.remove(ttBestMove);
             // moves.add(0, ttBestMove); // Add the best TT move to the front
@@ -98,10 +105,10 @@ public class Search {
 
         int bestScore = isWhiteTurn ? -inf : inf;
         Move bestMove = null;
+        int extension = 0;
         for (Move m : moves) {
             try {
                 board.doMove(m);
-                int extension = 0;
                 // If a king is in check (interesting position), extend search by 1
                 for (Piece p : board.getPieceList(turn)) {
                     if (p.getType() == pieceType.KING) {
@@ -141,7 +148,7 @@ public class Search {
         } else {
             flag = TranspositionTable.exact;
         }
-        tTable.store(board.zobristHash, depth, bestScore, flag, bestMove);
+        tTable.store(board.zobristHash, depth - 1 + extension, bestScore, flag, bestMove);
         return bestScore;
     }
 

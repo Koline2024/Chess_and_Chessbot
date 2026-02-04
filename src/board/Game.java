@@ -85,15 +85,31 @@ public class Game {
                         for (Move move : board.history) {
                             System.out.println(move);
                         }
+                        continue;
                     }
-
+                    // Get how full TTable is 
+                    if (input.equals("filled")) {
+                        System.out.println("The table is filled to: " + AI.tTable.filled() + "%");
+                        continue;
+                    }
+                    // Help function
+                    if (input.equals("help")) {
+                        System.out.println("Here are the available commands: ");
+                        System.out.println("To move: Enter start square and stop square.");
+                        System.out.println("To exit: Type 'exit'.");
+                        System.out.println("To undo: Type 'undo'.");
+                        System.out.println("To get all previous moves: Type 'history'");
+                        System.out.println("To get how filled the transposition table is: Type 'filled'.");
+                        continue;
+                    }
+                    
                     // Throw an IOexception if input is invalid
                     processInput(input, playerSide);
                     gameStateWhite = board.getGameState(pieceColour.WHITE);
                     gameStateBlack = board.getGameState(pieceColour.BLACK);
                     System.out.println(eval.evalAll(board, isWhiteTurn));
                 } catch (IOException e) {
-                    System.out.println("Invalid move! ");
+                    System.out.println("Invalid command. Type 'help' to get a list of valid commands. ");
                 }
             } else {
                 handleAImove(depth);
@@ -122,7 +138,7 @@ public class Game {
         }
 
         if (input.length() != 5) {
-            System.out.println("Format error. ");
+            System.out.println("Invalid command. Type 'help' to get a list of valid commands. ");
             return;
         }
         try {
@@ -252,14 +268,6 @@ public class Game {
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);
-            // Auto-queen promotion for chessbot
-            // if (bestMove.piece.getType() == pieceType.PAWN) {
-            // int r = bestMove.getMoveTo().getRank();
-            // if (r == 1 || r == 8) {
-            // board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(),
-            // bestMove.getMoveTo()));
-            // }
-            // }
             isWhiteTurn = !isWhiteTurn;
         } else {
             System.out.println("Chessbot has no legal moves. ");
