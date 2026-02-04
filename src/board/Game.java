@@ -12,7 +12,6 @@ public class Game {
     private Search AI;
     private List<Move> movesPlayer;
 
-
     public Game() {
         this.board = new Board();
         this.isWhiteTurn = true;
@@ -45,12 +44,11 @@ public class Game {
         }
 
         System.out.println("What depth should bot search to?");
-        try{
+        try {
             depth = Integer.parseInt(keyboard.readLine());
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("Not a number!");
         }
-
 
         while (gameStateWhite.equals("PLAYING") && gameStateBlack.equals("PLAYING")) {
             board.printBoard(playerSide);
@@ -72,8 +70,8 @@ public class Game {
                     }
                     // List all moves
                     if (input.equals("list")) {
-                        for (Move move : board.getLegalMoves(playerSide)){
-                            //System.out.print("\"" + move + "\", ");
+                        for (Move move : board.getLegalMoves(playerSide)) {
+                            // System.out.print("\"" + move + "\", ");
                             System.out.println(move);
                         }
                         System.out.println(board.getLegalMoves(playerSide).size());
@@ -81,10 +79,10 @@ public class Game {
                     }
                     // Get history of moves
                     if (input.equals("history")) {
-                        if(board.history.isEmpty()){
+                        if (board.history.isEmpty()) {
                             continue;
                         }
-                        for (Move move : board.history){
+                        for (Move move : board.history) {
                             System.out.println(move);
                         }
                     }
@@ -146,16 +144,35 @@ public class Game {
                 return;
             }
             Move move = new Move(p, initCoords, finalCoords);
-            
-            if (movesPlayer.contains(move)) { // TODO: marker this is where i last edited
+
+            // Set is en passant HERE
+            if (!board.history.isEmpty()) {
+                Move last = board.history.peek();
+                if (last.piece.getType() == pieceType.PAWN
+                        && Math.abs(last.getMoveFrom().getRow() - last.getMoveTo().getCol()) == 2) {
+                    int passingRow = last.to.getRow();
+                    int passingCol = last.to.getCol();
+                    int targetRow = (p.getColour() == pieceColour.WHITE) ? passingRow - 1 : passingRow + 1;
+                    if (finalCoords.getRow() == targetRow && finalCoords.getCol() == passingCol) {
+                        move.setIsEnPassant(true);
+                         Piece victim = board.getPieceAt(passingRow, passingCol);
+                    // Sanity check: The victim must exist and be the enemy colour
+                    if (victim != null && victim.getColour() != p.getColour() && victim == last.piece) {
+                        move.setCapturedPiece(victim);
+                    }
+                    }
+                }
+            }
+
+            if (movesPlayer.contains(move)) {
                 board.doMove(move);
                 if (move.piece.getType() == pieceType.PAWN) {
-                    if(((Pawn) move.piece).getJustMovedTwo() == true){
+                    if (((Pawn) move.piece).getJustMovedTwo() == true) {
                         ((Pawn) move.piece).setCanMoveTwo(false);
                     }
                     int rank = move.getMoveTo().getRank();
                     if (rank == 1 || rank == 8) {
-                        //handlePromotion(move.getMoveTo(), move.piece.getColour());
+                        // handlePromotion(move.getMoveTo(), move.piece.getColour());
                     }
                 }
                 isWhiteTurn = !isWhiteTurn;
@@ -169,31 +186,33 @@ public class Game {
     }
 
     // private void handlePromotion(Coordinates coords, pieceColour colour) {
-    //     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-    //     System.out.println("Choose promoted piece: Q, R, B, N");
-    //     try {
-    //         String choice = reader.readLine();
-    //         Piece newPiece;
-    //         switch (choice) {
-    //             case "R":
-    //                 newPiece = new Rook(colour, coords);
-    //                 break;
-    //             case "B":
-    //                 newPiece = new Bishop(colour, coords);
-    //                 break;
-    //             case "N":
-    //                 newPiece = new Knight(colour, coords);
-    //                 break;
-    //             default:
-    //                 newPiece = new Queen(colour, coords);
-    //         }
-    //         board.promote(coords, newPiece);
-    //         int c = (colour == pieceColour.WHITE) ? 0 : 1;
-    //         board.zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
-    //         board.zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
-    //     } catch (Exception e) {
-    //         System.out.println("IO Exception! ");
-    //     }
+    // BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    // System.out.println("Choose promoted piece: Q, R, B, N");
+    // try {
+    // String choice = reader.readLine();
+    // Piece newPiece;
+    // switch (choice) {
+    // case "R":
+    // newPiece = new Rook(colour, coords);
+    // break;
+    // case "B":
+    // newPiece = new Bishop(colour, coords);
+    // break;
+    // case "N":
+    // newPiece = new Knight(colour, coords);
+    // break;
+    // default:
+    // newPiece = new Queen(colour, coords);
+    // }
+    // board.promote(coords, newPiece);
+    // int c = (colour == pieceColour.WHITE) ? 0 : 1;
+    // board.zobristHash ^=
+    // Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
+    // board.zobristHash ^=
+    // Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
+    // } catch (Exception e) {
+    // System.out.println("IO Exception! ");
+    // }
     // }
 
     private void handleCastling(String type) {
@@ -235,10 +254,11 @@ public class Game {
             System.out.println("Chessbot played " + bestMove);
             // Auto-queen promotion for chessbot
             // if (bestMove.piece.getType() == pieceType.PAWN) {
-            //     int r = bestMove.getMoveTo().getRank();
-            //     if (r == 1 || r == 8) {
-            //         board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(), bestMove.getMoveTo()));
-            //     }
+            // int r = bestMove.getMoveTo().getRank();
+            // if (r == 1 || r == 8) {
+            // board.promote(bestMove.getMoveTo(), new Queen(bestMove.piece.getColour(),
+            // bestMove.getMoveTo()));
+            // }
             // }
             isWhiteTurn = !isWhiteTurn;
         } else {
