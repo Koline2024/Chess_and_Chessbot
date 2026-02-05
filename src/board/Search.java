@@ -2,13 +2,10 @@ package board;
 
 import enums.pieceColour;
 import enums.pieceType;
-import pieces.Piece;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Search {
 
@@ -25,218 +22,207 @@ public class Search {
     private Eval evaluator = new Eval();
     private static final int inf = 1000000;
     private static final int checkmate = 900000;
-    public final TranspositionTable tTable = new TranspositionTable(1000); // I have 16 gb ram lol
+    // Divisor 56 to account for Java object overhead in your 16GB RAM
+    public final TranspositionTable tTable = new TranspositionTable(1024);
 
     public Move findBestMove(Board board, int maxDepth, boolean isWhiteTurn) {
-        long startTime = System.currentTimeMillis();
-        Move overallBestMove = null;   
+        pieceColour side = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
+        List<Move> allRootMoves = board.getLegalMoves(side);
+
+        // Map to store scores for each move at each depth
+        Map<Move, int[]> historyMoves = new HashMap<>();
+        for (Move m : allRootMoves) {
+            historyMoves.put(m, new int[maxDepth + 1]);
+            Arrays.fill(historyMoves.get(m), -inf - 7); // Placeholder for "unsearched"
+        }
+
         Instant start = Instant.now();
-        Duration limit = Duration.ofMillis(1000);
-        // Iterative deepening
-        for (int depth = 1; depth < maxDepth; depth++) {
+        long limitMs = 1000;
+        int lastCompletedDepth = 0;
+
+        // --- ITERATIVE DEEPENING ---
+        for (int depth = 1; depth <= maxDepth; depth++) {
             int alpha = -inf;
             int beta = inf;
-            minimax(board, depth, alpha, beta, isWhiteTurn);
-            TranspositionTable.Entry rootEntry = tTable.get(board.zobristHash);
-            if (rootEntry != null && rootEntry.bestMove != null) {
-                overallBestMove = rootEntry.bestMove;
+
+            // Sort root moves based on previous depth results for better pruning
+            sortRootMoves(allRootMoves, historyMoves, lastCompletedDepth, isWhiteTurn);
+
+            for (Move m : allRootMoves) {
+                board.doMove(m);
+                // Start search at ply 1 because we just made a move
+                int score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn, 1);
+                board.undoMove();
+
+                historyMoves.get(m)[depth] = score;
+
+                // Root Alpha-Beta Pruning
+                if (isWhiteTurn) {
+                    alpha = Math.max(alpha, score);
+                } else {
+                    beta = Math.min(beta, score);
+                }
+
+                // Time Check: Exit mid-depth if we are over 80% of our time
+                if (Duration.between(start, Instant.now()).toMillis() > 0.8 * limitMs) {
+                    return chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
+                }
             }
-            Instant elapsed = Instant.now();
-            if (Duration.between(start, elapsed).toMillis() >= 0.8*limit.toMillis()){
-                break;
-            }
+            lastCompletedDepth = depth;
         }
-        long time = System.currentTimeMillis();
-        System.out.println("Move " + overallBestMove + " found in " + (time - startTime) / 1000 + " seconds");
-        return overallBestMove;
+
+        return chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
     }
 
-    /**
-     * Implements the classical minimax algorithm with alpha-beta pruning.
-     * 
-     * @param board
-     * @param depth
-     * @param alpha
-     * @param beta
-     * @param isWhiteTurn
-     * @return
-     */
-    private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn) {
+    private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn, int ply) {
         int originalAlpha = alpha;
-        TranspositionTable.Entry ttEntry = tTable.get(board.zobristHash); // Get entry for this board
-        if (ttEntry != null && ttEntry.key == board.zobristHash && ttEntry.depth >= depth) {
-            if (ttEntry.flag == TranspositionTable.exact) {
+        pieceColour turn = isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK;
+
+        // 1. TT Lookup (Normalizing mate scores with ply)
+        TranspositionTable.Entry ttEntry = tTable.get(board.zobristHash, ply);
+        if (ttEntry != null && ttEntry.depth >= depth) {
+            if (ttEntry.flag == TranspositionTable.exact)
                 return ttEntry.score;
-            } else if (ttEntry.flag == TranspositionTable.lowerBound) {
+            if (ttEntry.flag == TranspositionTable.lowerBound)
                 alpha = Math.max(alpha, ttEntry.score);
-            } else if (ttEntry.flag == TranspositionTable.upperBound) {
+            if (ttEntry.flag == TranspositionTable.upperBound)
                 beta = Math.min(beta, ttEntry.score);
-            }
-
-            if (alpha >= beta) {
+            if (alpha >= beta)
                 return ttEntry.score;
-            }
         }
 
-        pieceColour turn = (isWhiteTurn) ? pieceColour.WHITE : pieceColour.BLACK;
-        if (depth == 0) {
+        // 2. Base Cases
+        if (depth <= 0)
             return quiescenceSearch(board, alpha, beta, isWhiteTurn);
-        }
-        List<Move> moves = board.getLegalMoves(turn);
-        sortMoves(moves, board);
 
-        // Check for mating moves first
+        List<Move> moves = board.getLegalMoves(turn);
         if (moves.isEmpty()) {
             Coordinates kingPos = board.findKing(turn);
-            if (board.isSquareAttacked(kingPos, turn)) {
-                // If white is checkmated return negative infinity plus depth, opposite with
-                // black.
-                return isWhiteTurn ? -checkmate - depth : checkmate + depth;
-            } else {
-                return 0; // Stalemate
+            if (board.isSquareAttacked(kingPos, turn == pieceColour.WHITE ? pieceColour.BLACK : pieceColour.WHITE)) {
+                return isWhiteTurn ? -checkmate + ply : checkmate - ply;
             }
+            return 0; // Draw/Stalemate
         }
 
-        Move ttBestMove = (ttEntry != null) ? ttEntry.bestMove : null;
-        if (ttBestMove != null) {
-            // moves.remove(ttBestMove);
-            // moves.add(0, ttBestMove); // Add the best TT move to the front
+        // 3. Move Ordering (Use TT move first)
+        sortMoves(moves, board);
+        if (ttEntry != null && ttEntry.bestMove != null) {
+            Move best = ttEntry.bestMove;
+            moves.removeIf(m -> m.toString().equals(best.toString()));
+            moves.add(0, best);
         }
 
         int bestScore = isWhiteTurn ? -inf : inf;
         Move bestMove = null;
-        int extension = 0;
+
         for (Move m : moves) {
-            try {
-                board.doMove(m);
-                // If a king is in check (interesting position), extend search by 1
-                for (Piece p : board.getPieceList(turn)) {
-                    if (p.getType() == pieceType.KING) {
-                        if (board.isSquareAttacked(p.getCoordinates(), p.getColour())) {
-                            extension = 1;
-                        }
-                    }
-                }
+            board.doMove(m);
 
-                int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn);
-                if (isWhiteTurn) {
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = m;
-                    }
-                    alpha = Math.max(alpha, bestScore);
-                } else {
-                    if (score < bestScore) {
-                        bestScore = score;
-                        bestMove = m;
-                    }
-                    beta = Math.min(beta, bestScore);
+            // CHECK EXTENSION: If you put the opponent in check, search deeper
+            int extension = 0;
+            pieceColour nextToMove = isWhiteTurn ? pieceColour.BLACK : pieceColour.WHITE;
+            if (board.isSquareAttacked(board.findKing(nextToMove), turn))
+                extension = 1;
+
+            int score = minimax(board, depth - 1 + extension, alpha, beta, !isWhiteTurn, ply + 1);
+            board.undoMove();
+
+            if (isWhiteTurn) {
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = m;
                 }
-                if (alpha >= beta) {
-                    break; // Snip
+                alpha = Math.max(alpha, bestScore);
+            } else {
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMove = m;
                 }
-            } finally {
-                board.undoMove();
+                beta = Math.min(beta, bestScore);
             }
+
+            if (alpha >= beta)
+                break;
         }
 
-        int flag;
-        if (bestScore <= originalAlpha) {
-            flag = TranspositionTable.upperBound;
-        } else if (bestScore >= beta) {
-            flag = TranspositionTable.lowerBound;
-        } else {
-            flag = TranspositionTable.exact;
-        }
-        tTable.store(board.zobristHash, depth - 1 + extension, bestScore, flag, bestMove);
+        // 4. TT Store (Normalizing mate scores with ply)
+        int flag = (bestScore <= originalAlpha) ? TranspositionTable.upperBound
+                : (bestScore >= beta) ? TranspositionTable.lowerBound : TranspositionTable.exact;
+
+        tTable.store(board.zobristHash, depth, bestScore, flag, bestMove, ply);
         return bestScore;
     }
 
-    /**
-     * Quiescence search is applied after standard minimax to
-     * avoid the horizon effect problem.
-     * 
-     * @param board
-     * @param alpha
-     * @param beta
-     * @param isWhiteTurn
-     * @return
-     */
     private int quiescenceSearch(Board board, int alpha, int beta, boolean isWhiteTurn) {
-        int pat = evaluator.evalAll(board, isWhiteTurn);
+        int standPat = evaluator.evalAll(board, isWhiteTurn);
         if (isWhiteTurn) {
-            if (pat >= beta) {
+            if (standPat >= beta)
                 return beta;
-            }
-            if (alpha < pat) {
-                alpha = pat;
-            }
+            alpha = Math.max(alpha, standPat);
         } else {
-            if (pat <= alpha) {
+            if (standPat <= alpha)
                 return alpha;
-            }
-            if (beta > pat) {
-                beta = pat;
-            }
+            beta = Math.min(beta, standPat);
         }
 
-        List<Move> moves = board.getLegalMoves(isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK);
-        moves.removeIf(m -> m.getCapturedPiece() == null); // Filter for only captures
-        sortMoves(moves, board);
-        for (Move m : moves) {
+        List<Move> captures = board.getLegalMoves(isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK);
+        captures.removeIf(m -> m.getCapturedPiece() == null);
+        sortMoves(captures, board);
+
+        for (Move m : captures) {
             board.doMove(m);
-            try {
-                int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
+            int score = quiescenceSearch(board, alpha, beta, !isWhiteTurn);
+            board.undoMove();
 
-                if (isWhiteTurn) {
-                    if (score >= beta) {
-                        return beta;
-                    }
-                    if (score > alpha) {
-                        alpha = score;
-                    }
-                } else {
-                    if (score <= alpha) {
-                        return alpha;
-                    }
-                    if (score < beta) {
-                        beta = score;
-                    }
-                }
-            } finally {
-                board.undoMove();
+            if (isWhiteTurn) {
+                if (score >= beta)
+                    return beta;
+                alpha = Math.max(alpha, score);
+            } else {
+                if (score <= alpha)
+                    return alpha;
+                beta = Math.min(beta, score);
             }
-
         }
         return isWhiteTurn ? alpha : beta;
-
     }
 
-    /**
-     * Scoremove gives each possible move on the board a score
-     * based on how likely they are to be good, prioritising advantageous
-     * captures and promotions to speed up alpha beta pruning.
-     * 
-     * @param move
-     * @param board
-     * @return
-     */
-    private int scoreMove(Move move, Board board) {
-        int score = 0;
-        Piece actor = move.piece;
-        Piece victim = move.getCapturedPiece(); // MVV LVA
-        if (victim != null) {
-            score = (materialValues.get(victim.getType()) * 10) - materialValues.get(actor.getType());
-            score += 10000;
-        }
-        if (move.isPromotion()) {
-            score += 8000;
-        }
-        return score;
+    private void sortRootMoves(List<Move> moves, Map<Move, int[]> history, int depth, boolean isWhite) {
+        if (depth == 0)
+            return;
+        moves.sort((a, b) -> Integer.compare(history.get(b)[depth], history.get(a)[depth]) * (isWhite ? 1 : -1));
     }
 
     public void sortMoves(List<Move> moves, Board board) {
         moves.sort((a, b) -> Integer.compare(scoreMove(b, board), scoreMove(a, board)));
     }
 
+    private int scoreMove(Move move, Board board) {
+        int score = 0;
+        if (move.getCapturedPiece() != null) {
+            score = (materialValues.get(move.getCapturedPiece().getType()) * 10)
+                    - materialValues.get(move.piece.getType());
+            score += 10000;
+        }
+        if (move.isPromotion())
+            score += 8000;
+        return score;
+    }
+
+    private Move chooseMove(Map<Move, int[]> history, List<Move> moves, int maxD, boolean isWhiteTurn) {
+        Move bestMove = moves.get(0);
+        int bestScore = isWhiteTurn ? -inf : inf;
+        int multiplier = isWhiteTurn ? 1 : -1;
+
+        for (Move m : moves) {
+            int score = history.get(m)[maxD];
+            if (score == -inf - 7)
+                continue; // Skip unsearched
+            if (multiplier * score > multiplier * bestScore) {
+                bestScore = score;
+                bestMove = m;
+            }
+        }
+        return bestMove;
+    }
 }

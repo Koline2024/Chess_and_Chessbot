@@ -141,7 +141,7 @@ public class Eval {
         totalScore += deltaMaterial;
         totalScore += evalPST(whitePieces, blackPieces);
         totalScore += evalTropism(whitePieces, blackPieces, whiteKing, blackKing);
-        //totalScore += evalMobility(whiteMoves, blackMoves);
+        //totalScore += evalMobility(whiteMoves, blackMoves); // This is too expensive
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
         totalScore += evalPositionals(board, whitePieces, blackPieces);
         totalScore += evalOpening(whitePieces, blackPieces);
