@@ -101,7 +101,7 @@ public class Search {
             if (board.isSquareAttacked(kingPos, turn == pieceColour.WHITE ? pieceColour.BLACK : pieceColour.WHITE)) {
                 return isWhiteTurn ? -checkmate + ply : checkmate - ply;
             }
-            return -300; // Draw contempt factor: Don't draw unless 3 pawns down or equivalent
+            return isWhiteTurn ? -300 : 300; // Draw contempt factor: Don't draw unless 3 pawns down or equivalent
         }
 
         // 3. Move Ordering (Use TT move first)
@@ -218,7 +218,7 @@ public class Search {
         int objectiveBestScore = isWhiteTurn ? -inf : inf;
         for (Move m : moves) {
             int score = history.get(m)[maxD];
-            if (score <= -inf) {
+            if (score <= -inf - 7) {
                 continue; // Skip unsearched moves
             }
             if (multiplier * score > multiplier * objectiveBestScore) {
@@ -231,18 +231,17 @@ public class Search {
 
         for (Move m : moves) {
             int finalScore = history.get(m)[maxD]; // This is the final score of the move
-            if (finalScore <= -inf) {
+            if (finalScore <= -inf - 7) {
                 continue; // Skip unsearched moves
             }
-            // Worst objective move must be within 2 pawns of best
-            if (multiplier * finalScore >= (multiplier * objectiveBestScore - 200)) {
-                double shallowScore = 0.5
-                        * (history.get(m)[Math.min(maxD, maxD / 2)] + history.get(m)[Math.min(maxD, maxD / 2 + 1)]); // Experimental
-                if (shallowScore <= -inf){
+            // TODO: Experimental! Worst objective move must be within 1 pawn of best
+            if (multiplier * finalScore >= (multiplier * objectiveBestScore - 50)) {
+                double shallowScore = history.get(m)[Math.min(maxD, 3)]; // Experimental depth of 3
+                if (shallowScore <= -inf - 7){
                     shallowScore = finalScore;
                 }
                 // Trap potential, or the difference between shallow and deep evaluations
-                double trapPotential = Math.abs(finalScore - shallowScore);
+                double trapPotential = multiplier * (finalScore - shallowScore);
                 double trapWeight = 0.2; // TODO: experimental
                 double currentRelativeScore = multiplier * finalScore + trapPotential * trapWeight;
                 if (currentRelativeScore > relativeScore){

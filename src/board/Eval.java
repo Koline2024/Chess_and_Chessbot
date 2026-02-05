@@ -39,8 +39,8 @@ public class Eval {
             { 900, 900, 900, 900, 900, 900, 900, 900 }, // Encourage promotion
             { 50, 50, 50, 50, 50, 50, 50, 50 },
             { 10, 10, 20, 30, 30, 20, 10, 10 },
-            { 5, 5, 10, 25, 25, 10, 5, 5 },
-            { 0, 0, 0, 15, 15, 0, 0, 0 },
+            { 5, 5, 10, 40, 40, 10, 5, 5 },
+            { 0, 0, 10, 20, 20, 10, 0, 0 },
             { 5, 5, 10, -10, -10, 10, 5, 5 },
             { 0, 0, 0, -30, -30, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -144,7 +144,7 @@ public class Eval {
         //totalScore += evalMobility(whiteMoves, blackMoves); // This is too expensive
         totalScore += evalSpecialBonuses(whitePieces, blackPieces);
         totalScore += evalPositionals(board, whitePieces, blackPieces);
-        totalScore += evalOpening(whitePieces, blackPieces);
+        //totalScore += evalOpening(whitePieces, blackPieces);
         totalScore += evalFinale(whiteKing, blackKing, deltaMaterial);
 
         return totalScore;
@@ -405,7 +405,7 @@ public class Eval {
             if (p.getType() == pieceType.PAWN) {
                 for (int i = p.getCoordinates().getRow(); i < 8; i++) {
                     Piece p2 = (board.getPieceAt(i, p.getCoordinates().getCol()));
-                    if (p2 != null) {
+                    if (p2 != null && p2 != p) {
                         if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
                             positionalScore -= 30; // Penalise doubled pawns or tripled pawns
                         }
@@ -417,7 +417,7 @@ public class Eval {
             if (p.getType() == pieceType.PAWN) {
                 for (int i = p.getCoordinates().getRow(); i >= 0; i--) {
                     Piece p2 = board.getPieceAt(i, p.getCoordinates().getCol());
-                    if (p2 != null) {
+                    if (p2 != null && p2 != p) {
                         if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
                             positionalScore += 30; // Penalise doubled pawns or tripled pawns
                         }
