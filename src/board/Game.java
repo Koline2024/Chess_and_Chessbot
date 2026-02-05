@@ -92,6 +92,15 @@ public class Game {
                         System.out.println("The table is filled to: " + AI.tTable.filled() + "%");
                         continue;
                     }
+                    // Recalibrate 
+                    if (input.equals("recalibrate")){
+                        AI.tTable.clear();
+                        continue;
+                    }
+                    //Debug minimax
+                    if (input.equals("why")){
+
+                    }
                     // Help function
                     if (input.equals("help")) {
                         System.out.println("Here are the available commands: ");
@@ -99,6 +108,7 @@ public class Game {
                         System.out.println("To exit: Type 'exit'.");
                         System.out.println("To undo: Type 'undo'.");
                         System.out.println("To get all previous moves: Type 'history'");
+                        System.out.println("To recalibrate transposition table: Type 'recalibrate'");
                         System.out.println("To get how filled the transposition table is: Type 'filled'.");
                         continue;
                     }
@@ -264,7 +274,7 @@ public class Game {
 
     private void handleAImove(int depth) {
         System.out.println("Chessbot is thinking... ");
-        Move bestMove = AI.findBestMove(board, depth, isWhiteTurn);
+        Move bestMove = AI.findBestMove(board, depth, isWhiteTurn, false);
         if (bestMove != null) {
             board.doMove(bestMove);
             System.out.println("Chessbot played " + bestMove);

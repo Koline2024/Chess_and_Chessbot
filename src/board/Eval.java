@@ -36,7 +36,7 @@ public class Eval {
 
     // PSTs below
     private static int[][] PSTPawn = {
-            { 900, 900, 900, 900, 900, 900, 900, 900 }, // Encourage promotion
+            { 0, 0, 0, 0, 0, 0, 0, 0 }, 
             { 50, 50, 50, 50, 50, 50, 50, 50 },
             { 10, 10, 20, 30, 30, 20, 10, 10 },
             { 5, 5, 10, 40, 40, 10, 5, 5 },
@@ -63,8 +63,8 @@ public class Eval {
             { -10, 0, 5, 10, 10, 5, 0, -10 },
             { -10, 5, 5, 10, 10, 5, 5, -10 },
             { -10, 5, 5, 10, 10, 5, 5, -10 },
-            { -10, 0, 5, 10, 10, 5, 0, -10 },
             { -10, 0, 0, 0, 0, 0, 0, -10 },
+            { -10, 10, 0, 0, 0, 0, 10, -10 },
             { -20, -10, -50, -10, -10, -50, -10, -20 }
     };
 
@@ -284,7 +284,7 @@ public class Eval {
     private int tropismBonus(Piece p, Coordinates kingPos) {
         int dist = Math.abs(p.getCoordinates().getCol() - kingPos.getCol())
                 + Math.abs(p.getCoordinates().getRow() - kingPos.getRow());
-        return 5 * (7 - dist);
+        return 3 * (7 - dist);
     }
 
     private int evalSpecialBonuses(List<Piece> whitePieces, List<Piece> blackPieces) {

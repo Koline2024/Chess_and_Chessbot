@@ -43,7 +43,7 @@ public class TranspositionTable {
     }
 
     public void store(long zobristHash, int depth, int score, int flag, Move bestMove, int ply) {
-        int index = Math.abs((int) (zobristHash % size));
+        int index = (int) ((zobristHash & 0x7FFFFFFFFFFFFFFFL) % size);
         // Replacement Scheme: Always replace if the new search is deeper
         // or if the existing entry is from a different position (collision)
         Entry e = entries[index];

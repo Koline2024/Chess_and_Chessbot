@@ -1,4 +1,5 @@
 import board.Game;
+import board.MatchManager;
 
 public class Main {
 
@@ -6,5 +7,8 @@ public class Main {
 
         Game game = new Game();
         game.start();   
+
+        // MatchManager m = new MatchManager();
+        // m.begin();
     }
 }

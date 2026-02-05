@@ -16,7 +16,6 @@ public class Pawn extends Piece {
         super(pieceType.PAWN, colour, coordinates);
         // Safety method 
         if(coordinates.getRank() != ((colour == pieceColour.WHITE) ? 2 : 7)){
-            System.out.println("AAAA");
             canMoveTwo = false;
         }
     }
