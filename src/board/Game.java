@@ -82,9 +82,7 @@ public class Game {
                         if (board.history.isEmpty()) {
                             continue;
                         }
-                        for (Move move : board.history) {
-                            System.out.println(move);
-                        }
+                        board.historyToPGN();
                         continue;
                     }
                     // Get how full TTable is 

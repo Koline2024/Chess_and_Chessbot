@@ -89,9 +89,16 @@ public class MatchManager {
                     score2 += 0.5;
                 }
                 matchesRemaining --;
+                
                 System.out.println("Current scores:");
                 System.out.println("BOT 1: " + score1);
                 System.out.println("BOT 2: " + score2);
+                boolean cont = false;
+                while (!cont){
+                    board.historyToPGN();
+                    System.out.println("Next match? ");
+                    
+                }
             }
 
         } catch (Exception e) {

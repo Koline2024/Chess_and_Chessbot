@@ -71,11 +71,7 @@ public class Rook extends Piece {
 
     @Override
     public String getSymbol(){
-        if(colour == pieceColour.WHITE){
-            return "Rw";
-        }else{
-            return "Rb";
-        }
+        return "R";
     }
 
 }

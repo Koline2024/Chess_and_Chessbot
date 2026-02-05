@@ -39,10 +39,6 @@ public class Knight extends Piece{
 
     @Override
     public String getSymbol(){
-        if(colour == pieceColour.WHITE){
-            return "Nw";
-        }else{
-            return "Nb";
-        }
+        return "N";
     }
 }

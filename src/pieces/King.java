@@ -40,11 +40,7 @@ public class King extends Piece{
 
     @Override
     public String getSymbol(){
-        if(colour == pieceColour.WHITE){
-            return "Kw";
-        }else{
-            return "Kb";
-        }
+        return "K";
     }
 
 }

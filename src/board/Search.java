@@ -55,10 +55,10 @@ public class Search {
                 board.undoMove();
                 
                 // VALIDATION CHECK
-                if (board.getPieceList(pieceColour.BLACK).size() != 2) {
-                    System.out.println("CRITICAL: Piece count desync after undoing " + m);
-                    System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
-                }
+                // if (board.getPieceList(pieceColour.BLACK).size() != 16) {
+                //     System.out.println("CRITICAL: Piece count desync after undoing " + m);
+                //     System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
+                // }
 
                 historyMoves.get(m)[depth] = score;
 

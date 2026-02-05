@@ -96,10 +96,6 @@ public class Queen extends Piece {
 
     @Override
     public String getSymbol(){
-        if(colour == pieceColour.WHITE){
-            return "Qw";
-        }else{
-            return "Qb";
-        }
+        return "Q";
     }
 }

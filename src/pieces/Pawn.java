@@ -103,11 +103,7 @@ public class Pawn extends Piece {
 
     @Override
     public String getSymbol() {
-        if (colour == pieceColour.WHITE) {
-            return "Pw";
-        } else {
-            return "Pb";
-        }
+        return "";
     }
 
     public boolean getCanMoveTwo() {
