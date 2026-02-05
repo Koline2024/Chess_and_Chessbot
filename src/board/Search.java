@@ -40,7 +40,7 @@ public class Search {
         long limitMs = 1000;
         int lastCompletedDepth = 0;
 
-        // --- ITERATIVE DEEPENING ---
+        // Iterative deepening
         for (int depth = 1; depth <= maxDepth; depth++) {
             int alpha = -inf;
             int beta = inf;
@@ -101,7 +101,7 @@ public class Search {
             if (board.isSquareAttacked(kingPos, turn == pieceColour.WHITE ? pieceColour.BLACK : pieceColour.WHITE)) {
                 return isWhiteTurn ? -checkmate + ply : checkmate - ply;
             }
-            return 0; // Draw/Stalemate
+            return -300; // Draw contempt factor: Don't draw unless 3 pawns down or equivalent
         }
 
         // 3. Move Ordering (Use TT move first)
@@ -210,18 +210,47 @@ public class Search {
     }
 
     private Move chooseMove(Map<Move, int[]> history, List<Move> moves, int maxD, boolean isWhiteTurn) {
-        Move bestMove = moves.get(0);
-        int bestScore = isWhiteTurn ? -inf : inf;
         int multiplier = isWhiteTurn ? 1 : -1;
+        Move bestMove = moves.get(0);
+        double relativeScore = -inf; // Make higher better regardless of side because side gave me a headache lol
 
+        // First find objectively best move
+        int objectiveBestScore = isWhiteTurn ? -inf : inf;
         for (Move m : moves) {
             int score = history.get(m)[maxD];
-            if (score == -inf - 7)
-                continue; // Skip unsearched
-            if (multiplier * score > multiplier * bestScore) {
-                bestScore = score;
+            if (score <= -inf) {
+                continue; // Skip unsearched moves
+            }
+            if (multiplier * score > multiplier * objectiveBestScore) {
+                objectiveBestScore = score;
                 bestMove = m;
             }
+        }
+        // Now we know the objectively best move
+        // BUT WE DONT DO IT! Look for traps like a rat
+
+        for (Move m : moves) {
+            int finalScore = history.get(m)[maxD]; // This is the final score of the move
+            if (finalScore <= -inf) {
+                continue; // Skip unsearched moves
+            }
+            // Worst objective move must be within 2 pawns of best
+            if (multiplier * finalScore >= (multiplier * objectiveBestScore - 200)) {
+                double shallowScore = 0.5
+                        * (history.get(m)[Math.min(maxD, maxD / 2)] + history.get(m)[Math.min(maxD, maxD / 2 + 1)]); // Experimental
+                if (shallowScore <= -inf){
+                    shallowScore = finalScore;
+                }
+                // Trap potential, or the difference between shallow and deep evaluations
+                double trapPotential = Math.abs(finalScore - shallowScore);
+                double trapWeight = 0.2; // TODO: experimental
+                double currentRelativeScore = multiplier * finalScore + trapPotential * trapWeight;
+                if (currentRelativeScore > relativeScore){
+                    relativeScore = currentRelativeScore;
+                    bestMove = m;
+                }
+            }
+
         }
         return bestMove;
     }
