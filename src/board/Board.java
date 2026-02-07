@@ -113,16 +113,18 @@ public class Board {
 
         // Handle Promotion Hash 
         // TODO: Comment back
-        // int promotionRank = (move.piece.getColour() == pieceColour.WHITE) ? 8 : 1;
-        // if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRank() == promotionRank) {
-        //     Queen q = new Queen(move.piece.getColour(), null);
-        //     promote(move.getMoveTo(), q);
-        //     move.setPromotion(true);
-        //     int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
-        //     zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][move.getMoveTo().getIndex()];
-        //     zobristHash ^= Zobrist.pieces[c][q.getType().ordinal()][move.getMoveTo().getIndex()];
+        int promotionRow = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 7;
+        if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRow() == promotionRow) {
+            move.setPromotion(true);
+            Queen q = new Queen(move.piece.getColour(), null);
+            promote(move.getMoveTo(), q);
+            int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
+            //zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][move.getMoveTo().getIndex()];
+            zobristHash ^= Zobrist.pieces[c][q.getType().ordinal()][move.getMoveTo().getIndex()];
 
-        // }
+        }else{
+            zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
+        }
 
         // NEW EP possibility?
         if (p.getType() == pieceType.PAWN && Math.abs(move.from.getRow() - move.to.getRow()) == 2) {
@@ -158,16 +160,16 @@ public class Board {
 
         // 3. REVERSE PIECE MOVEMENT & HASHING
         if (last.wasPromotion()) {
-            // // Remove the promoted piece (e.g., Queen) from the 'to' square
-            // Piece promotedPiece = grid[last.to.getRow()][last.to.getCol()];
-            // zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
-            // removePieceFromSystem(promotedPiece);
-            // grid[last.to.getRow()][last.to.getCol()] = null;
+            // Remove the promoted piece (e.g., Queen) from the 'to' square
+            Piece promotedPiece = grid[last.to.getRow()][last.to.getCol()];
+            zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
+            removePieceFromSystem(promotedPiece);
+            grid[last.to.getRow()][last.to.getCol()] = null;
 
-            // // Put the original Pawn back on the 'from' square
-            // setPiece(last.from, p);
-            // addPieceToSystem(p);
-            // zobristHash ^= Zobrist.pieces[colourIdx][pieceType.PAWN.ordinal()][last.from.getIndex()];
+            // Put the original Pawn back on the 'from' square
+            setPiece(last.from, p);
+            addPieceToSystem(p);
+            zobristHash ^= Zobrist.pieces[colourIdx][pieceType.PAWN.ordinal()][last.from.getIndex()];
         } else {
             // Standard reverse: move piece from 'to' back to 'from'
             zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][last.to.getIndex()];
@@ -563,9 +565,8 @@ public class Board {
         }
         // Avoid adding duplicates to the internal piece lists
         java.util.List<Piece> list = getPieceList(p.getColour());
-        if (!list.contains(p)) {
             list.add(p);
-        }
+        
     }
 
     private void removePieceFromSystem(Piece p) {

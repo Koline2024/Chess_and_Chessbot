@@ -2,6 +2,7 @@ package board;
 
 import enums.pieceColour;
 import enums.pieceType;
+import pieces.Piece;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -49,16 +50,22 @@ public class Search {
             sortRootMoves(allRootMoves, historyMoves, lastCompletedDepth, isWhiteTurn);
 
             for (Move m : allRootMoves) {
-                board.doMove(m); // Make a copy
+                board.doMove(m); 
                 // Start search at ply 1 because we just made a move
                 int score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn, 1);
                 board.undoMove();
                 
-                // VALIDATION CHECK
-                // if (board.getPieceList(pieceColour.BLACK).size() != 16) {
-                //     System.out.println("CRITICAL: Piece count desync after undoing " + m);
-                //     System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
-                // }
+
+                
+                // VALIDATION CHECK TODO: delete
+                if (board.getPieceList(pieceColour.BLACK).size() != 2) {
+                    System.out.println("CRITICAL: Piece count desync after undoing " + m);
+                    System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
+                    System.out.println("Black now has: ");
+                    for (Piece p : board.getPieceList(pieceColour.BLACK)){
+                        System.out.println(p.getSymbol());
+                    }
+                }
 
                 historyMoves.get(m)[depth] = score;
 
@@ -78,7 +85,8 @@ public class Search {
             lastCompletedDepth = depth;
         }
 
-        return chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
+        return (isTricky) ? chooseTrickyMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn)
+                            : chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
     }
 
     private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn, int ply) {

@@ -96,7 +96,10 @@ public class MatchManager {
                 boolean cont = false;
                 while (!cont){
                     board.historyToPGN();
-                    System.out.println("Next match? ");
+                    System.out.println("Next match? Y/N");
+                    if (keyboard.readLine().toLowerCase().equals("Y")){
+                        cont = true;
+                    }
                     
                 }
             }
