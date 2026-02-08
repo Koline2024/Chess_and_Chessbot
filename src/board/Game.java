@@ -95,9 +95,10 @@ public class Game {
                         AI.tTable.clear();
                         continue;
                     }
-                    //Debug minimax
-                    if (input.equals("why")){
-
+                    //Debug hash
+                    if (input.equals("hash")){
+                        System.out.println(board.zobristHash);
+                        continue;
                     }
                     // Help function
                     if (input.equals("help")) {
@@ -108,6 +109,7 @@ public class Game {
                         System.out.println("To get all previous moves: Type 'history'");
                         System.out.println("To recalibrate transposition table: Type 'recalibrate'");
                         System.out.println("To get how filled the transposition table is: Type 'filled'.");
+                        System.out.println("To get the zobrist hash type 'hash'. ");
                         continue;
                     }
                     
@@ -194,10 +196,6 @@ public class Game {
                     if (((Pawn) move.piece).getJustMovedTwo() == true) {
                         ((Pawn) move.piece).setCanMoveTwo(false);
                     }
-                    int rank = move.getMoveTo().getRank();
-                    if (rank == 1 || rank == 8) {
-                        // handlePromotion(move.getMoveTo(), move.piece.getColour());
-                    }
                 }
                 isWhiteTurn = !isWhiteTurn;
             } else {
@@ -208,36 +206,6 @@ public class Game {
         }
 
     }
-
-    // private void handlePromotion(Coordinates coords, pieceColour colour) {
-    // BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-    // System.out.println("Choose promoted piece: Q, R, B, N");
-    // try {
-    // String choice = reader.readLine();
-    // Piece newPiece;
-    // switch (choice) {
-    // case "R":
-    // newPiece = new Rook(colour, coords);
-    // break;
-    // case "B":
-    // newPiece = new Bishop(colour, coords);
-    // break;
-    // case "N":
-    // newPiece = new Knight(colour, coords);
-    // break;
-    // default:
-    // newPiece = new Queen(colour, coords);
-    // }
-    // board.promote(coords, newPiece);
-    // int c = (colour == pieceColour.WHITE) ? 0 : 1;
-    // board.zobristHash ^=
-    // Zobrist.pieces[c][pieceType.PAWN.ordinal()][coords.getIndex()];
-    // board.zobristHash ^=
-    // Zobrist.pieces[c][pieceType.QUEEN.ordinal()][coords.getIndex()];
-    // } catch (Exception e) {
-    // System.out.println("IO Exception! ");
-    // }
-    // }
 
     private void handleCastling(String type) {
         int rank = isWhiteTurn ? 1 : 8; // White is Rank 1, Black is Rank 8

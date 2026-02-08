@@ -5,10 +5,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Game game = new Game();
-        game.start();   
+        // Game game = new Game();
+        // game.start();   
 
-        // MatchManager m = new MatchManager();
-        // m.begin();
+        MatchManager m = new MatchManager();
+        m.begin();
     }
 }

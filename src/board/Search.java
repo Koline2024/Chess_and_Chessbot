@@ -32,6 +32,9 @@ public class Search {
 
         // Map to store scores for each move at each depth
         Map<Move, int[]> historyMoves = new HashMap<>();
+        if (allRootMoves.isEmpty()){
+            return null;
+        }
         for (Move m : allRootMoves) {
             historyMoves.put(m, new int[maxDepth + 1]);
             Arrays.fill(historyMoves.get(m), -inf - 7); // Placeholder for "unsearched"
@@ -55,17 +58,15 @@ public class Search {
                 int score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn, 1);
                 board.undoMove();
                 
-
-                
                 // VALIDATION CHECK TODO: delete
-                if (board.getPieceList(pieceColour.BLACK).size() != 2) {
-                    System.out.println("CRITICAL: Piece count desync after undoing " + m);
-                    System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
-                    System.out.println("Black now has: ");
-                    for (Piece p : board.getPieceList(pieceColour.BLACK)){
-                        System.out.println(p.getSymbol());
-                    }
-                }
+                // if (board.getPieceList(pieceColour.BLACK).size() != 2) {
+                //     System.out.println("CRITICAL: Piece count desync after undoing " + m);
+                //     System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
+                //     System.out.println("Black now has: ");
+                //     for (Piece p : board.getPieceList(pieceColour.BLACK)){
+                //         System.out.println(p.getSymbol());
+                //     }
+                // }
 
                 historyMoves.get(m)[depth] = score;
 
@@ -97,14 +98,20 @@ public class Search {
         // 1. TT Lookup (Normalizing mate scores with ply)
         TranspositionTable.Entry ttEntry = tTable.get(board.zobristHash, ply);
         if (ttEntry != null && ttEntry.depth >= depth) {
+            int score = ttEntry.score;
+            if (score > checkmate - 1000) {
+                score -= ply;
+            } else if (score < -checkmate + 1000) {
+                score += ply;
+            }
             if (ttEntry.flag == TranspositionTable.exact)
-                return ttEntry.score;
+                return score;
             if (ttEntry.flag == TranspositionTable.lowerBound)
-                alpha = Math.max(alpha, ttEntry.score);
+                alpha = Math.max(alpha, score);
             if (ttEntry.flag == TranspositionTable.upperBound)
-                beta = Math.min(beta, ttEntry.score);
+                beta = Math.min(beta, score);
             if (alpha >= beta)
-                return ttEntry.score;
+                return score;
         }
 
         // 2. Base Cases
@@ -114,7 +121,7 @@ public class Search {
         List<Move> moves = board.getLegalMoves(turn);
         if (moves.isEmpty()) {
             Coordinates kingPos = board.findKing(turn);
-            if (board.isSquareAttacked(kingPos, turn == pieceColour.WHITE ? pieceColour.BLACK : pieceColour.WHITE)) {
+            if (board.isSquareAttacked(kingPos, turn == pieceColour.WHITE ? pieceColour.WHITE : pieceColour.BLACK)) {
                 return isWhiteTurn ? -checkmate + ply : checkmate - ply;
             }
             return isWhiteTurn ? -300 : 300; // Draw contempt factor: Don't draw unless 3 pawns down or equivalent

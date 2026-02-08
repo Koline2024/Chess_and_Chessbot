@@ -25,7 +25,8 @@ public class Board {
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
+        //initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
+        initialise(null);
         syncPieceLists();
     }
 
@@ -342,8 +343,28 @@ public class Board {
         return true;
     }
 
-    public void initialise(String fen) {
+    public void clearBoard(){
+        if (!whitePieces.isEmpty()){
+            whitePieces.clear();
+        }
+        if (!blackPieces.isEmpty()){
+            blackPieces.clear();
+        }
+        if (!history.isEmpty()){
+            history.clear();
+        }
 
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                grid[row][col] = null;
+            }
+        }
+    }
+
+    public void initialise(String fen) {
+        // Fully clear board
+        clearBoard();
+       
         // Default starting position if FEN is empty
         if (fen == null || fen.isEmpty()) {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -381,7 +402,7 @@ public class Board {
 
         // Update Game State (Whose turn is it?)
         if (parts.length > 1) {
-            // this.isWhiteTurn = parts[1].equals("w");
+            //this.isWhiteTurn = parts[1].equals("w");
         }
     }
 
