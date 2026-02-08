@@ -110,7 +110,7 @@ public class Board {
         p.setMoved(true);
 
         // 3. XOR IN NEW STATE
-        zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
+        //zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
 
         // Handle Promotion Hash 
         // TODO: Comment back
@@ -826,7 +826,7 @@ public class Board {
 
     public void historyToPGN() {
         int counter = 1;
-        for (int i = 0; i < history.size() - 1; i+=2) {
+        for (int i = 0; i < history.size(); i+=2) {
             Move whiteMove = history.get(i);
             Move blackMove = history.get(i + 1);
             System.out
