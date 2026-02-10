@@ -4,6 +4,7 @@ import enums.pieceColour;
 import enums.pieceType;
 import board.Coordinates;
 
+import java.util.Objects;
 
 import board.Board;
 
@@ -45,17 +46,42 @@ public abstract class Piece {
         coordinates = newCoordinates;
     }
 
-    public boolean hasMoved(){
+    public boolean hasMoved() {
         return hasMoved;
     }
 
-    public void setMoved(boolean x){
+    public void setMoved(boolean x) {
         hasMoved = x;
     }
+
+    // @Override
+    // public boolean equals(Object o){
+    //     if (o == null){
+    //         return false;
+    //     }
+    //     if (o == this){
+    //         return true;
+    //     }
+
+    //     if (o.getClass() != this.getClass()){
+    //         return false;
+    //     }
+
+    //     Piece p = (Piece) o;
+    //     if (p.getType() == this.getType() && p.getColour() == this.getColour() && p.getCoordinates().toString().equals(this.getCoordinates().toString())){
+    //         return true;
+    //     }else{
+    //         return false;
+    //     }
+    // }
+
+    // @Override
+    // public int hashCode(){
+    //     return Objects.hash(type, colour, coordinates);
+    // }
 
     public abstract boolean isValidMove(Coordinates target, Board board);
 
     public abstract String getSymbol();
-
 
 }

@@ -2,7 +2,6 @@ package board;
 
 import enums.pieceColour;
 import enums.pieceType;
-import pieces.Piece;
 
 import java.time.Duration;
 import java.time.Instant;

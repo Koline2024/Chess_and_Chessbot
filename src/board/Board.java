@@ -25,8 +25,8 @@ public class Board {
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        //initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
-        initialise(null);
+        initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
+        //initialise("8/p7/1k6/8/8/6K1/7P/8 w - - 0 1");
         syncPieceLists();
     }
 
@@ -105,7 +105,6 @@ public class Board {
         }
 
         grid[move.from.getRow()][move.from.getCol()] = null;
-        setPiece(move.to, p);
         move.setPieceWasMovedBefore(p.hasMoved());
         p.setMoved(true);
 
@@ -113,18 +112,22 @@ public class Board {
         //zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
 
         // Handle Promotion Hash 
+    
         // TODO: Comment back
         int promotionRow = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 7;
         if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRow() == promotionRow) {
+            removePieceFromSystem(p);
+            Queen q = new Queen(p.getColour(), move.getMoveTo());
+            setPiece(move.getMoveTo(), q);
+            addPieceToSystem(q);
             move.setPromotion(true);
-            Queen q = new Queen(move.piece.getColour(), null);
-            promote(move.getMoveTo(), q);
             int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
-            //zobristHash ^= Zobrist.pieces[c][pieceType.PAWN.ordinal()][move.getMoveTo().getIndex()];
-            zobristHash ^= Zobrist.pieces[c][q.getType().ordinal()][move.getMoveTo().getIndex()];
+            zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][move.getMoveTo().getIndex()];
 
         }else{
+            setPiece(move.to, p);
             zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
+            
         }
 
         // NEW EP possibility?
@@ -134,6 +137,7 @@ public class Board {
 
         // XOR IN the NEW castling rights
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
+        lastMove = move;
         history.push(move);
     }
 
@@ -142,7 +146,7 @@ public class Board {
             return;
 
         Move last = history.pop();
-        Piece p = last.piece;
+        Piece p = last.piece; // NOTE: If promoting this was original pawn
         int colourIdx = (p.getColour() == pieceColour.WHITE) ? 0 : 1;
         int enemyIdx = 1 - colourIdx;
 
@@ -160,9 +164,11 @@ public class Board {
         }
 
         // 3. REVERSE PIECE MOVEMENT & HASHING
-        if (last.wasPromotion()) {
+
+        int promotionRow = (p.getColour() == pieceColour.WHITE) ? 0 : 7;
+        if (p.getType() == pieceType.PAWN && last.getMoveTo().getRow() == promotionRow) {
             // Remove the promoted piece (e.g., Queen) from the 'to' square
-            Piece promotedPiece = grid[last.to.getRow()][last.to.getCol()];
+            Queen promotedPiece = (Queen) grid[last.to.getRow()][last.to.getCol()]; // This is the queen
             zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
             removePieceFromSystem(promotedPiece);
             grid[last.to.getRow()][last.to.getCol()] = null;
@@ -211,6 +217,9 @@ public class Board {
             if (prev.piece.getType() == pieceType.PAWN && Math.abs(prev.from.getRow() - prev.to.getRow()) == 2) {
                 zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
             }
+            this.lastMove = prev;
+        }else{
+            this.lastMove = null;
         }
 
         // 7. XOR IN THE RESTORED CASTLING RIGHTS
@@ -555,13 +564,7 @@ public class Board {
         }
     }
 
-    public void promote(Coordinates coords, Piece toPiece) {
-        Piece oldPawn = getPiece(coords);
-        removePieceFromSystem(oldPawn); // Take the pawn out of the list
 
-        setPiece(coords, toPiece); // Put queen on grid
-        addPieceToSystem(toPiece); // Put queen in the list;
-    }
 
     public List<Piece> getPieceList(pieceColour colour) {
         return (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
@@ -586,7 +589,7 @@ public class Board {
         }
         // Avoid adding duplicates to the internal piece lists
         java.util.List<Piece> list = getPieceList(p.getColour());
-            list.add(p);
+        list.add(p);
         
     }
 
@@ -598,7 +601,12 @@ public class Board {
         // Grid updates should be handled by move/undo logic to avoid accidental
         // disappearance/duplication.
         java.util.List<Piece> list = getPieceList(p.getColour());
-        list.remove(p);
+        
+        if(list.removeIf(piece -> piece == p)){
+            //System.out.println("removed!");
+        }else{
+            System.out.println("Couldn't remove " + p.getSymbol());
+        }
     }
 
     public List<Move> getLegalMoves(pieceColour colour) {
@@ -829,6 +837,7 @@ public class Board {
         for (int i = 0; i < history.size(); i+=2) {
             Move whiteMove = history.get(i);
             Move blackMove = history.get(i + 1);
+
             System.out
                     .printf((counter) + ". " + whiteMove.piece.getSymbol() + whiteMove.to.getFile() + whiteMove.to.getRank());
             System.out.printf(" " + blackMove.piece.getSymbol() + blackMove.to.getFile() + blackMove.to.getRank()+" ");

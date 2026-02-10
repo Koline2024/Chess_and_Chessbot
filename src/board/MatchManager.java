@@ -85,20 +85,17 @@ public class MatchManager {
                         continue;
                     }
                 }
-
+                board.printBoard(pieceColour.WHITE);
                 if (gameStateWhite.equals("CHECKMATE")) {
                     System.out.println("Black wins by checkmate! ");
                     score2 ++;
-                    //isWhiteTurn = !isWhiteTurn;
                 } else if (gameStateBlack.equals("CHECKMATE")) {
                     System.out.println("White wins by checkmate! ");
                     score1 ++;
-                    //isWhiteTurn = !isWhiteTurn;
                 } else if (gameStateBlack.equals("STALEMATE") || gameStateWhite.equals("STALEMATE")) {
                     System.out.println("Draw by stalemate! ");
                     score1 += 0.5;
                     score2 += 0.5;
-                    isWhiteTurn = !isWhiteTurn;
                 }
                 matchesRemaining --;
                 
