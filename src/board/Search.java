@@ -128,11 +128,12 @@ public class Search {
 
         // 3. Move Ordering (Use TT move first)
         sortMoves(moves, board);
-        if (ttEntry != null && ttEntry.bestMove != null) {
-            Move best = ttEntry.bestMove;
-            moves.removeIf(m -> m.toString().equals(best.toString()));
-            moves.add(0, best);
-        }
+        // TODO: THIS IS THE FUCKING BUG ARE WE DEADASS
+        // if (ttEntry != null && ttEntry.bestMove != null) {
+        //     Move best = ttEntry.bestMove;
+        //     moves.removeIf(m -> m.toString().equals(best.toString()));
+        //     moves.add(0, best);
+        // }
 
         int bestScore = isWhiteTurn ? -inf : inf;
         Move bestMove = null;
@@ -234,7 +235,6 @@ public class Search {
     private Move chooseMove(Map<Move, int[]> history, List<Move> moves, int maxD, boolean isWhiteTurn) {
         int multiplier = isWhiteTurn ? 1 : -1;
         Move bestMove = moves.get(0);
-        double relativeScore = -inf; // Make higher better regardless of side because side gave me a headache lol
 
         // First find objectively best move
         int objectiveBestScore = isWhiteTurn ? -inf : inf;

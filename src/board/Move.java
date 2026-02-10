@@ -11,6 +11,7 @@ public class Move {
     public final Coordinates from;
     public final Coordinates to;
     public static long[] oldCastlingRights = new long[16];
+    
 
     // Move identifiers
     private Piece capturedPiece;
@@ -18,6 +19,7 @@ public class Move {
     private boolean isCastling;
     private boolean isPromotion;
     private boolean wasFirstMove;
+    private Piece promotedPiece;
 
     // Memory
     private boolean pieceWasMovedBefore;
@@ -86,6 +88,14 @@ public class Move {
 
     public void setPromotion(boolean x) {
         isPromotion = x;
+    }
+
+    public Piece getPromotedPiece(){
+        return promotedPiece;
+    }
+
+    public void setPromotedPiece(Piece p){
+        promotedPiece = p;
     }
 
     @Override

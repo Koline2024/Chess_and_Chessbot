@@ -117,7 +117,9 @@ public class Board {
         int promotionRow = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 7;
         if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRow() == promotionRow) {
             removePieceFromSystem(p);
+
             Queen q = new Queen(p.getColour(), move.getMoveTo());
+            move.setPromotedPiece(q);
             setPiece(move.getMoveTo(), q);
             addPieceToSystem(q);
             move.setPromotion(true);
@@ -167,11 +169,17 @@ public class Board {
 
         int promotionRow = (p.getColour() == pieceColour.WHITE) ? 0 : 7;
         if (p.getType() == pieceType.PAWN && last.getMoveTo().getRow() == promotionRow) {
+
             // Remove the promoted piece (e.g., Queen) from the 'to' square
-            Queen promotedPiece = (Queen) grid[last.to.getRow()][last.to.getCol()]; // This is the queen
-            zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
-            removePieceFromSystem(promotedPiece);
+            Piece q = last.getPromotedPiece();
+            zobristHash ^= Zobrist.pieces[colourIdx][q.getType().ordinal()][last.to.getIndex()];
+            removePieceFromSystem(q);
             grid[last.to.getRow()][last.to.getCol()] = null;
+
+            // Queen promotedPiece = (Queen) grid[last.to.getRow()][last.to.getCol()]; // This is the queen
+            // zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
+            // removePieceFromSystem(promotedPiece);
+            // grid[last.to.getRow()][last.to.getCol()] = null;
 
             // Put the original Pawn back on the 'from' square
             setPiece(last.from, p);
@@ -600,7 +608,20 @@ public class Board {
         // Only remove from the internal piece list; do not mutate the grid here.
         // Grid updates should be handled by move/undo logic to avoid accidental
         // disappearance/duplication.
-        java.util.List<Piece> list = getPieceList(p.getColour());
+        List<Piece> list = getPieceList(p.getColour());
+        // List<Piece> newList = new ArrayList<>();
+        // for (Piece piece : list){
+        //     // Add to new list if NOT piece to be removed
+        //     if (!p.getCoordinates().toString().equals(piece.getCoordinates().toString())){
+        //         newList.add(piece);
+        //     }
+        // }
+
+        // if (!newList.isEmpty()){
+        //    list = newList;
+        // }
+        
+
         
         if(list.removeIf(piece -> piece == p)){
             //System.out.println("removed!");
