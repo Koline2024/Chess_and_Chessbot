@@ -20,6 +20,7 @@ public class Move {
     private boolean isPromotion;
     private boolean wasFirstMove;
     private Piece promotedPiece;
+    private long zobHash;
 
     // Memory
     private boolean pieceWasMovedBefore;
@@ -98,6 +99,14 @@ public class Move {
         promotedPiece = p;
     }
 
+    public long getZob(){
+        return zobHash;
+    }
+
+    public void setZob(long x){
+        zobHash = x;
+    }
+
     @Override
     public boolean equals(Object m) {
         if (this == m) {
@@ -134,6 +143,6 @@ public class Move {
     @Override
     public String toString() {
         return piece.getSymbol() + ": " + from + " to " + to;
-        // return from + "" + to;
+        
     }
 }

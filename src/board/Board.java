@@ -25,8 +25,9 @@ public class Board {
     private ArrayList<Piece> blackPieces = new ArrayList<>();
 
     public Board() {
-        initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
+        //initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
         //initialise("8/p7/1k6/8/8/6K1/7P/8 w - - 0 1");
+        initialise(null);
         syncPieceLists();
     }
 
@@ -140,6 +141,7 @@ public class Board {
         // XOR IN the NEW castling rights
         zobristHash ^= Zobrist.castlingRights[getCastlingMask()];
         lastMove = move;
+        move.setZob(zobristHash); // To stop repeating
         history.push(move);
     }
 

@@ -31,7 +31,7 @@ public class Search {
 
         // Map to store scores for each move at each depth
         Map<Move, int[]> historyMoves = new HashMap<>();
-        if (allRootMoves.isEmpty()){
+        if (allRootMoves.isEmpty()) {
             return null;
         }
         for (Move m : allRootMoves) {
@@ -52,20 +52,10 @@ public class Search {
             sortRootMoves(allRootMoves, historyMoves, lastCompletedDepth, isWhiteTurn);
 
             for (Move m : allRootMoves) {
-                board.doMove(m); 
+                board.doMove(m);
                 // Start search at ply 1 because we just made a move
                 int score = minimax(board, depth - 1, alpha, beta, !isWhiteTurn, 1);
                 board.undoMove();
-                
-                // VALIDATION CHECK TODO: delete
-                // if (board.getPieceList(pieceColour.BLACK).size() != 2) {
-                //     System.out.println("CRITICAL: Piece count desync after undoing " + m);
-                //     System.out.println("Move info: Promo=" + m.isPromotion() + " Pim=" + m.piece.getSymbol());
-                //     System.out.println("Black now has: ");
-                //     for (Piece p : board.getPieceList(pieceColour.BLACK)){
-                //         System.out.println(p.getSymbol());
-                //     }
-                // }
 
                 historyMoves.get(m)[depth] = score;
 
@@ -86,7 +76,7 @@ public class Search {
         }
 
         return (isTricky) ? chooseTrickyMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn)
-                            : chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
+                : chooseMove(historyMoves, allRootMoves, lastCompletedDepth, isWhiteTurn);
     }
 
     private int minimax(Board board, int depth, int alpha, int beta, boolean isWhiteTurn, int ply) {
@@ -125,14 +115,27 @@ public class Search {
             }
             return isWhiteTurn ? -300 : 300; // Draw contempt factor: Don't draw unless 3 pawns down or equivalent
         }
+        // Threefold repetition
+        int count = 0;
+        for (int i = 0; i < board.history.size(); i++){
+            if (board.zobristHash == board.history.get(i).getZob()){
+                count ++;
+            }
+        }
+        if (count == 3){
+            return isWhiteTurn ? -10000 : 10000; // Draw contempt factor
+        }
+
+        
+        
 
         // 3. Move Ordering (Use TT move first)
         sortMoves(moves, board);
         // TODO: THIS IS THE FUCKING BUG ARE WE DEADASS
         // if (ttEntry != null && ttEntry.bestMove != null) {
-        //     Move best = ttEntry.bestMove;
-        //     moves.removeIf(m -> m.toString().equals(best.toString()));
-        //     moves.add(0, best);
+        // Move best = ttEntry.bestMove;
+        // moves.removeIf(m -> m.toString().equals(best.toString()));
+        // moves.add(0, best);
         // }
 
         int bestScore = isWhiteTurn ? -inf : inf;
@@ -317,11 +320,6 @@ public class Search {
 
         for (Move m : moves) {
             board.doMove(m); // Make a copy
-
-            // 2. (Optional) Re-calculate hash from scratch to compare
-            // long manualHash = board.calculateHashFromScratch();
-            // if (board.zobristHash != manualHash) throw new RuntimeException("Incremental
-            // update failed!");
 
             verifyHash(board, depth - 1, !isWhiteTurn);
 

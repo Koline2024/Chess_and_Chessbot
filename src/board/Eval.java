@@ -39,7 +39,7 @@ public class Eval {
             { 0, 0, 0, 0, 0, 0, 0, 0 }, 
             { 50, 50, 50, 50, 50, 50, 50, 50 },
             { 10, 10, 20, 30, 30, 20, 10, 10 },
-            { 5, 5, 10, 40, 40, 10, 5, 5 },
+            { 5, 5, 10, 39, 40, 10, 5, 5 },
             { 0, 0, 10, 20, 20, 10, 0, 0 },
             { 5, 5, 10, -10, -10, 10, 5, 5 },
             { 0, 0, 0, -30, -30, 0, 0, 0 },
@@ -59,7 +59,7 @@ public class Eval {
 
     private static int[][] PSTBishop = {
             { -20, -10, -10, -10, -10, -10, -10, -20 },
-            { -10, 0, 0, 0, 0, 0, 0, -10 },
+            { 0, 0, 0, 0, 0, 0, 0, 0 },
             { -10, 0, 5, 10, 10, 5, 0, -10 },
             { -10, 5, 5, 10, 10, 5, 5, -10 },
             { -10, 5, 5, 10, 10, 5, 5, -10 },
@@ -412,6 +412,18 @@ public class Eval {
                     }
                 }
             }
+            if (p.getType() == pieceType.ROOK){
+                for (int i = p.getCoordinates().getRow(); i < 8; i++) {
+                    if (board.getPieceAt(i, p.getCoordinates().getCol()) != null 
+                    && board.getPieceAt(i, p.getCoordinates().getCol()).getColour() != p.getColour()){
+                        continue; // Terminate at an enemy piece
+                    }
+                    if (board.getPieceAt(i, p.getCoordinates().getCol()) == null){
+                        positionalScore += 10;
+                    }
+                }
+            }
+
         }
         for (Piece p : blackPieces) {
             if (p.getType() == pieceType.PAWN) {
@@ -421,6 +433,18 @@ public class Eval {
                         if (p2.getType() == pieceType.PAWN && p2.getColour() == p.getColour()) {
                             positionalScore += 30; // Penalise doubled pawns or tripled pawns
                         }
+                    }
+                }
+            }
+
+            if (p.getType() == pieceType.ROOK){
+                for (int i = p.getCoordinates().getRow(); i >= 0; i--) {
+                    if (board.getPieceAt(i, p.getCoordinates().getCol()) != null 
+                    && board.getPieceAt(i, p.getCoordinates().getCol()).getColour() != p.getColour()){
+                        continue; // Terminate at an enemy piece
+                    }
+                    if (board.getPieceAt(i, p.getCoordinates().getCol()) == null){
+                        positionalScore -= 10;
                     }
                 }
             }
