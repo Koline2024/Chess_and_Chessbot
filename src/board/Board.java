@@ -2,17 +2,19 @@ package board;
 
 import enums.pieceColour;
 import enums.pieceType;
-import pieces.Piece;
-import pieces.Queen;
-import pieces.Rook;
-import pieces.Bishop;
-import pieces.King;
-import pieces.Knight;
-import pieces.Pawn;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.geometry.Pos;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import pieces.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 public class Board {
 
@@ -23,11 +25,13 @@ public class Board {
     private Piece[][] grid = new Piece[8][8];
     private ArrayList<Piece> whitePieces = new ArrayList<>();
     private ArrayList<Piece> blackPieces = new ArrayList<>();
+    private Map<String, Image> imageCache = new HashMap<>();
+    GridPane board;
 
     public Board() {
-        //initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
+        initialise("8/7P/8/3K4/8/1k6/p7/8 w - - 0 1");
         //initialise("8/p7/1k6/8/8/6K1/7P/8 w - - 0 1");
-        initialise(null);
+        //initialise(null);
         syncPieceLists();
     }
 
@@ -110,10 +114,11 @@ public class Board {
         p.setMoved(true);
 
         // 3. XOR IN NEW STATE
-        //zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
+        // zobristHash ^=
+        // Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
 
-        // Handle Promotion Hash 
-    
+        // Handle Promotion Hash
+
         // TODO: Comment back
         int promotionRow = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 7;
         if (move.piece.getType() == pieceType.PAWN && move.getMoveTo().getRow() == promotionRow) {
@@ -127,10 +132,10 @@ public class Board {
             int c = (move.piece.getColour() == pieceColour.WHITE) ? 0 : 1;
             zobristHash ^= Zobrist.pieces[c][pieceType.QUEEN.ordinal()][move.getMoveTo().getIndex()];
 
-        }else{
+        } else {
             setPiece(move.to, p);
             zobristHash ^= Zobrist.pieces[colourIdx][p.getType().ordinal()][move.to.getIndex()];
-            
+
         }
 
         // NEW EP possibility?
@@ -178,8 +183,10 @@ public class Board {
             removePieceFromSystem(q);
             grid[last.to.getRow()][last.to.getCol()] = null;
 
-            // Queen promotedPiece = (Queen) grid[last.to.getRow()][last.to.getCol()]; // This is the queen
-            // zobristHash ^= Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
+            // Queen promotedPiece = (Queen) grid[last.to.getRow()][last.to.getCol()]; //
+            // This is the queen
+            // zobristHash ^=
+            // Zobrist.pieces[colourIdx][promotedPiece.getType().ordinal()][last.to.getIndex()];
             // removePieceFromSystem(promotedPiece);
             // grid[last.to.getRow()][last.to.getCol()] = null;
 
@@ -228,7 +235,7 @@ public class Board {
                 zobristHash ^= Zobrist.passantFiles[prev.to.getCol()];
             }
             this.lastMove = prev;
-        }else{
+        } else {
             this.lastMove = null;
         }
 
@@ -362,14 +369,14 @@ public class Board {
         return true;
     }
 
-    public void clearBoard(){
-        if (!whitePieces.isEmpty()){
+    public void clearBoard() {
+        if (!whitePieces.isEmpty()) {
             whitePieces.clear();
         }
-        if (!blackPieces.isEmpty()){
+        if (!blackPieces.isEmpty()) {
             blackPieces.clear();
         }
-        if (!history.isEmpty()){
+        if (!history.isEmpty()) {
             history.clear();
         }
 
@@ -383,7 +390,7 @@ public class Board {
     public void initialise(String fen) {
         // Fully clear board
         clearBoard();
-       
+
         // Default starting position if FEN is empty
         if (fen == null || fen.isEmpty()) {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -421,7 +428,7 @@ public class Board {
 
         // Update Game State (Whose turn is it?)
         if (parts.length > 1) {
-            //this.isWhiteTurn = parts[1].equals("w");
+            // this.isWhiteTurn = parts[1].equals("w");
         }
     }
 
@@ -537,6 +544,110 @@ public class Board {
         }
     }
 
+    public void drawBoard(pieceColour side) {
+        if (this.board == null) {
+            this.board = new GridPane();
+        }
+
+        this.board.getChildren().clear();
+        int squareSize = 100;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                int gridRow = (side == pieceColour.WHITE) ? r : 7 - r;
+                int gridCol = (side == pieceColour.WHITE) ? c : 7 - c;
+
+                StackPane square = new StackPane();
+                square.setPrefSize(squareSize, squareSize);
+
+                Color lightColour = Color.web("#F0D9B5");
+                Color darkColour = Color.web("#B58863");
+                Color squareColour = ((r + c) % 2 == 0) ? lightColour : darkColour;
+                Rectangle background = new Rectangle(squareSize, squareSize);
+                background.setFill(squareColour);
+                square.getChildren().add(background);
+
+                if (c == 0) {
+                    // Calculate the number based on board orientation
+                    String rankStr = (side == pieceColour.WHITE) ? String.valueOf(8 - r) : String.valueOf(r + 1);
+                    Text rankText = new Text(" " + rankStr);
+                    rankText.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+                    // Make the text color the opposite of the square color for contrast
+                    rankText.setFill((squareColour == lightColour) ? darkColour : lightColour);
+
+                    // Snap it to the top left
+                    StackPane.setAlignment(rankText, Pos.TOP_LEFT);
+                    square.getChildren().add(rankText);
+                }
+
+                if (r == 7) {
+                    // Calculate the letter based on board orientation
+                    char fileChar = (side == pieceColour.WHITE) ? (char) ('a' + c) : (char) ('h' - c);
+                    Text fileText = new Text(String.valueOf(fileChar) + " ");
+                    fileText.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+                    // Make the text color the opposite of the square color
+                    fileText.setFill((squareColour == lightColour) ? darkColour : lightColour);
+
+                    // Snap it to the bottom right
+                    StackPane.setAlignment(fileText, Pos.BOTTOM_RIGHT);
+                    square.getChildren().add(fileText);
+                }
+                Piece p = grid[gridRow][gridCol];
+                if (p != null) {
+                    String fileName = getPieceFileName(p);
+                    Image pieceImage = new Image("file:assets/" + fileName); // TODO: temp fix, find some way to make
+                                                                             // this packagable
+                    ImageView imageView = new ImageView(pieceImage);
+                    imageView.setFitWidth(squareSize * 0.85); // Takes up 85% of the square
+                    imageView.setFitHeight(squareSize * 0.85);
+                    imageView.setPreserveRatio(true);
+                    square.getChildren().add(imageView);
+                }
+                this.board.add(square, c, r);
+            }
+        }
+    }
+
+    private Image getCachedImage(Piece p) {
+        String fileName = getPieceFileName(p);
+
+        if (!imageCache.containsKey(fileName)) {
+            Image newImage = new Image("file:assets/" + fileName);
+            imageCache.put(fileName, newImage);
+        }
+
+        return imageCache.get(fileName);
+    }
+
+    private String getPieceFileName(Piece p) {
+        String colorPrefix = (p.getColour() == pieceColour.WHITE) ? "White_" : "Black_";
+        String pieceSuffix = "";
+
+        switch (p.getType()) {
+            case PAWN:
+                pieceSuffix = "Pawn";
+                break;
+            case ROOK:
+                pieceSuffix = "Rook";
+                break;
+            case KNIGHT:
+                pieceSuffix = "Knight";
+                break;
+            case BISHOP:
+                pieceSuffix = "Bishop";
+                break;
+            case QUEEN:
+                pieceSuffix = "Queen";
+                break;
+            case KING:
+                pieceSuffix = "King";
+                break;
+        }
+
+        return colorPrefix + pieceSuffix + ".png";
+    }
+
     /**
      * Not actually unicode
      * 
@@ -574,8 +685,6 @@ public class Board {
         }
     }
 
-
-
     public List<Piece> getPieceList(pieceColour colour) {
         return (colour == pieceColour.WHITE) ? whitePieces : blackPieces;
     }
@@ -600,7 +709,7 @@ public class Board {
         // Avoid adding duplicates to the internal piece lists
         java.util.List<Piece> list = getPieceList(p.getColour());
         list.add(p);
-        
+
     }
 
     private void removePieceFromSystem(Piece p) {
@@ -613,21 +722,20 @@ public class Board {
         List<Piece> list = getPieceList(p.getColour());
         // List<Piece> newList = new ArrayList<>();
         // for (Piece piece : list){
-        //     // Add to new list if NOT piece to be removed
-        //     if (!p.getCoordinates().toString().equals(piece.getCoordinates().toString())){
-        //         newList.add(piece);
-        //     }
+        // // Add to new list if NOT piece to be removed
+        // if
+        // (!p.getCoordinates().toString().equals(piece.getCoordinates().toString())){
+        // newList.add(piece);
+        // }
         // }
 
         // if (!newList.isEmpty()){
-        //    list = newList;
+        // list = newList;
         // }
-        
 
-        
-        if(list.removeIf(piece -> piece == p)){
-            //System.out.println("removed!");
-        }else{
+        if (list.removeIf(piece -> piece == p)) {
+            // System.out.println("removed!");
+        } else {
             System.out.println("Couldn't remove " + p.getSymbol());
         }
     }
@@ -857,14 +965,16 @@ public class Board {
 
     public void historyToPGN() {
         int counter = 1;
-        for (int i = 0; i < history.size(); i+=2) {
+        for (int i = 0; i < history.size(); i += 2) {
             Move whiteMove = history.get(i);
             Move blackMove = history.get(i + 1);
 
             System.out
-                    .printf((counter) + ". " + whiteMove.piece.getSymbol() + whiteMove.to.getFile() + whiteMove.to.getRank());
-            System.out.printf(" " + blackMove.piece.getSymbol() + blackMove.to.getFile() + blackMove.to.getRank()+" ");
-            counter ++;
+                    .printf((counter) + ". " + whiteMove.piece.getSymbol() + whiteMove.to.getFile()
+                            + whiteMove.to.getRank());
+            System.out
+                    .printf(" " + blackMove.piece.getSymbol() + blackMove.to.getFile() + blackMove.to.getRank() + " ");
+            counter++;
         }
         System.out.println("");
     }

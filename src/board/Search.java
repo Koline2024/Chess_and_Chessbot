@@ -83,7 +83,6 @@ public class Search {
         int originalAlpha = alpha;
         pieceColour turn = isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK;
 
-        // verifyHash(board, depth, isWhiteTurn);
         // 1. TT Lookup (Normalizing mate scores with ply)
         TranspositionTable.Entry ttEntry = tTable.get(board.zobristHash, ply);
         if (ttEntry != null && ttEntry.depth >= depth) {
@@ -103,6 +102,8 @@ public class Search {
                 return score;
         }
 
+        // ttEntry.bestMove
+
         // 2. Base Cases
         if (depth <= 0)
             return quiescenceSearch(board, alpha, beta, isWhiteTurn);
@@ -117,27 +118,22 @@ public class Search {
         }
         // Threefold repetition
         int count = 0;
-        for (int i = 0; i < board.history.size(); i++){
-            if (board.zobristHash == board.history.get(i).getZob()){
-                count ++;
+        for (int i = 0; i < board.history.size(); i++) {
+            if (board.zobristHash == board.history.get(i).getZob()) {
+                count++;
             }
         }
-        if (count == 3){
+        if (count == 3) {
             return isWhiteTurn ? -10000 : 10000; // Draw contempt factor
         }
 
-        
-        
-
         // 3. Move Ordering (Use TT move first)
-        sortMoves(moves, board);
-        // TODO: THIS IS THE FUCKING BUG ARE WE DEADASS
-        // if (ttEntry != null && ttEntry.bestMove != null) {
-        // Move best = ttEntry.bestMove;
-        // moves.removeIf(m -> m.toString().equals(best.toString()));
-        // moves.add(0, best);
-        // }
-
+        if(ttEntry == null){
+            sortMoves(moves, board);
+        }else{
+            sortMoves(moves, board, ttEntry.bestMove);
+        }
+        
         int bestScore = isWhiteTurn ? -inf : inf;
         Move bestMove = null;
 
@@ -219,20 +215,49 @@ public class Search {
         moves.sort((a, b) -> Integer.compare(history.get(b)[depth], history.get(a)[depth]) * (isWhite ? 1 : -1));
     }
 
-    public void sortMoves(List<Move> moves, Board board) {
-        moves.sort((a, b) -> Integer.compare(scoreMove(b, board), scoreMove(a, board)));
+    public void sortMoves(List<Move> moves, Board board, Move ttEntryBestMove) {
+        moves.sort(
+                (a, b) -> Integer.compare(scoreMove(b, board, ttEntryBestMove), scoreMove(a, board, ttEntryBestMove)));
     }
 
-    private int scoreMove(Move move, Board board) {
-        int score = 0;
-        if (move.getCapturedPiece() != null) {
-            score = (materialValues.get(move.getCapturedPiece().getType()) * 10)
-                    - materialValues.get(move.piece.getType());
-            score += 10000;
+    public void sortMoves(List<Move> moves, Board board) {
+        moves.sort(
+                (a, b) -> Integer.compare(scoreMove(b, board), scoreMove(a, board)));
+    }
+
+    //TODO: marker: I changed this to try to implement the TT move ordering 
+    private int scoreMove(Move move, Board board, Move ttEntryBestMove) {
+        
+        if (move.toString().equals(ttEntryBestMove.toString())) {
+            return Integer.MAX_VALUE;
+        } else {
+            int score = 0;
+            if (move.getCapturedPiece() != null) {
+                score = (materialValues.get(move.getCapturedPiece().getType()) * 10)
+                        - materialValues.get(move.piece.getType());
+                score += 10000;
+            }
+            if (move.isPromotion()) {
+                score += 8000;
+            }
+
+            return score;
+
         }
-        if (move.isPromotion())
-            score += 8000;
-        return score;
+    }
+
+    private int scoreMove(Move move, Board board){
+        int score = 0;
+            if (move.getCapturedPiece() != null) {
+                score = (materialValues.get(move.getCapturedPiece().getType()) * 10)
+                        - materialValues.get(move.piece.getType());
+                score += 10000;
+            }
+            if (move.isPromotion()) {
+                score += 8000;
+            }
+
+            return score;
     }
 
     private Move chooseMove(Map<Move, int[]> history, List<Move> moves, int maxD, boolean isWhiteTurn) {
@@ -251,9 +276,6 @@ public class Search {
                 bestMove = m;
             }
         }
-        // Now we know the objectively best move
-        // BUT WE DONT DO IT! Look for traps like a rat
-
         return bestMove;
     }
 

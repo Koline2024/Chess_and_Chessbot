@@ -100,16 +100,29 @@ public class Game {
                         System.out.println(board.zobristHash);
                         continue;
                     }
+                    if (input.equals("lobotomize")){
+                        System.out.println("Stockbird is now lobotomized. ");
+                        depth = 1;
+                        continue;
+                    }
+                    if (input.equals("magnus")){
+                        System.out.println("Have fun lol. ");
+                        depth = 15;
+                        continue;
+                    }
                     // Help function
                     if (input.equals("help")) {
                         System.out.println("Here are the available commands: ");
                         System.out.println("To move: Enter start square and stop square.");
                         System.out.println("To exit: Type 'exit'.");
                         System.out.println("To undo: Type 'undo'.");
+                        System.out.println("To lobotomize: Type 'lobotomy'.");
+                        System.out.println("To magnus: Type 'magnus'.");
                         System.out.println("To get all previous moves: Type 'history'");
                         System.out.println("To recalibrate transposition table: Type 'recalibrate'");
                         System.out.println("To get how filled the transposition table is: Type 'filled'.");
                         System.out.println("To get the zobrist hash type 'hash'. ");
+
                         continue;
                     }
                     
@@ -249,4 +262,25 @@ public class Game {
             System.out.println("Chessbot has no legal moves. ");
         }
     }
+
+
+
+
+    // private void handleClick(int gridRow, int gridCol, pieceColour side){
+    //     boolean isPlayerTurn = (isWhiteTurn && side == pieceColour.WHITE || !isWhiteTurn && side == pieceColour.BLACK);
+    //     if(!isPlayerTurn){
+    //         return;
+    //     }
+
+    //     Coordinates clickedCoords = new Coordinates(8 - gridRow, (char) ('a' + gridCol));
+    //     Piece clickedPiece = board.getPiece(clickedCoords);
+    //     pieceColour currentTurnColour = isWhiteTurn ? pieceColour.WHITE : pieceColour.BLACK;
+
+    //     if (selectedSquare == null) {
+    //     if (clickedPiece != null && clickedPiece.getColour() == currentTurnColour) {
+    //         selectedSquare = clickedCoords;
+    //         drawBoard(side); 
+    //     }
+    // }
+    // }
 }

@@ -16,6 +16,13 @@
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
+        },
+        {
+             "type": "java",
+            "name": "Launch App",
+            "request": "launch",
+            "mainClass": "Main",
+            "vmArgs": "--module-path \"C:\\Users\\chris\\Downloads\\openjfx-25.0.2_windows-x64_bin-sdk\\javafx-sdk-25.0.2\\lib\" --add-modules javafx.controls,javafx.fxml"
         }
     ]
 }
